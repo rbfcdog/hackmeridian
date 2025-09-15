@@ -1,9 +1,6 @@
 // src/app.ts
 import express from 'express';
-import dotenv from 'dotenv';
-import actionsRouter from './api/routes/actions.router'; // Importando nosso novo roteador
-
-dotenv.config();
+import actionsRouter from './api/routes/actions.router';
 
 const app = express();
 
@@ -11,17 +8,16 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Rota de Health Check (ótima prática!)
+// Rota de Health Check
 app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'OK' });
+  res.status(200).json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
 // Conecta o roteador principal da nossa API
-// Todas as nossas "ferramentas" estarão sob o prefixo /api/actions
 app.use('/api/actions', actionsRouter);
 
 // Middleware para rotas não encontradas (404)
-app.use('*', (req, res) => {
+app.use((req, res) => {
   res.status(404).json({ error: 'Route not found' });
 });
 
