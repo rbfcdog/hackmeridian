@@ -8,7 +8,7 @@ import {
 } from '@stellar/stellar-sdk';
 import fetch from 'node-fetch';
 import { server, stellarConfig } from '../config/stellar';
-import { loadAccount, submitTransaction, createMemo, createAsset } from '../utils /stellar';
+import { loadAccount, submitTransaction, createMemo, createAsset } from '../utils/stellar';
 import { SupabaseService } from './supabaseService';
 import { PaymentRequest, CreateAccountRequest, TransactionRecord } from '../types';
 
