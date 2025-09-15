@@ -9,7 +9,7 @@ import {
 import fetch from 'node-fetch';
 import { server, stellarConfig } from '../config/stellar';
 import { loadAccount, submitTransaction, createMemo, createAsset } from '../utils /stellar';
-import { SupabaseService } from './supabaseService';
+import { SupabaseProvider } from './supabaseProvider';
 import { PaymentRequest, CreateAccountRequest, TransactionRecord } from '../types';
 
 export class TransactionService {
@@ -68,7 +68,7 @@ export class TransactionService {
     }
   }
 
-  static async createTestAccount() {
+  static async createTestnetAccount() {
 
     const keypair = Keypair.random();
     const publicKey = keypair.publicKey();
@@ -77,6 +77,23 @@ export class TransactionService {
     const response = await fetch(`https://friendbot.stellar.org/?addr=${publicKey}`)
 
     const data = await response.json();
+
+    const transactionRecord = await SupabaseService.createTransactionRecord({
+        destination_account: publicKey,
+        operation_type: 'create_account',
+        amount: data.,
+        asset_code: 'XLM',
+        status: 'success',
+        transaction_hash: data.hash,
+    })
+
+
+
+
+
+
+
+
     return { publicKey, secret, friendbotResult: data };
   }
 

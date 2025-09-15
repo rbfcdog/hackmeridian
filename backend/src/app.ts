@@ -26,9 +26,9 @@ app.get('/api', (req, res) => {
   });
 });
 
-app.get('/create_account', async (req, res) => {
+app.get('/create_testnet_account', async (req, res) => {
   try {
-    const result = await TransactionService.createTestAccount();
+    const result = await TransactionService.createTestnetAccount();
     res.json({
       success: true,
       ...result

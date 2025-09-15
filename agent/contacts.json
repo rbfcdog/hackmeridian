@@ -1,0 +1,22 @@
+{
+  "contacts": [
+    {
+      "name": "Adobe Inc.",
+      "type": "company",
+      "public_key": "adobe_public_key_here",
+      "wallet_address": "0x...",
+      "payment_methods": ["crypto", "bank_transfer"],
+      "contact_person": "John Doe",
+      "email": "payments@adobe.com"
+    },
+    {
+      "name": "Microsoft Corporation",
+      "type": "company", 
+      "public_key": "microsoft_public_key_here",
+      "wallet_address": "0x...",
+      "payment_methods": ["crypto"],
+      "contact_person": "Jane Smith",
+      "email": "finance@microsoft.com"
+    }
+  ]
+}
