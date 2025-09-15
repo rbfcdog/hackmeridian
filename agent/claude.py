@@ -87,7 +87,8 @@ class StellarConverseMultiAgentCrew:
             You should classify the intent and determine if this is a new conversation or continuation.""",
             tools=[],
             llm=self.llm,
-            verbose=True
+            verbose=True,
+            max_iter=3
         )
 
     def data_collector_agent(self) -> Agent:
@@ -120,7 +121,8 @@ class StellarConverseMultiAgentCrew:
             Ask specific questions to fill missing information. Be conversational and helpful.""",
             tools=[JSONSearchTool(json_path="contacts.json")],
             llm=self.llm,
-            verbose=True
+            verbose=True,
+            max_iter=3
         )
 
     def validation_agent(self) -> Agent:
@@ -136,7 +138,8 @@ class StellarConverseMultiAgentCrew:
             proper execution_params for the backend API calls.""",
             tools=[JSONSearchTool(json_path="contacts.json")],
             llm=self.llm,
-            verbose=True
+            verbose=True,
+            max_iter=3
         )
 
     def response_formatter_agent(self) -> Agent:
@@ -155,7 +158,8 @@ class StellarConverseMultiAgentCrew:
             Your messages should be natural and helpful, guiding users through the process.""",
             tools=[],
             llm=self.llm,
-            verbose=True
+            verbose=True,
+            max_iter=3
         )
 
     def create_tasks(self, user_message: str) -> List[Task]:
@@ -194,6 +198,7 @@ class StellarConverseMultiAgentCrew:
             Update the collected_data with new information.
             """,
             agent=self.data_collector_agent(),
+            tools=[JSONSearchTool(json_path="contacts.json")],
             expected_output="JSON with updated collected_data, missing_fields, and next_questions"
         )
         

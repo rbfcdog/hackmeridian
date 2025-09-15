@@ -1,49 +1,28 @@
+// src/app.ts
 import express from 'express';
 import dotenv from 'dotenv';
-
-import { TransactionService } from './services/transactionService';
-
+import actionsRouter from './api/routes/actions.router'; // Importando nosso novo roteador
 
 dotenv.config();
 
 const app = express();
 
+// Middlewares essenciais
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Rota de Health Check (ótima prática!)
 app.get('/health', (req, res) => {
-  res.status(200).json({
-    status: 'OK',
-    timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV || 'development'
-  });
+  res.status(200).json({ status: 'OK' });
 });
 
-app.get('/api', (req, res) => {
-  res.json({
-    message: 'Meridian Backend API',
-    version: '1.0.0'
-  });
-});
+// Conecta o roteador principal da nossa API
+// Todas as nossas "ferramentas" estarão sob o prefixo /api/actions
+app.use('/api/actions', actionsRouter);
 
-app.get('/create_testnet_account', async (req, res) => {
-  try {
-    const result = await TransactionService.createTestnetAccount();
-    res.json({
-      success: true,
-      ...result
-    });
-  } catch (error: any) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-});
-
+// Middleware para rotas não encontradas (404)
 app.use('*', (req, res) => {
-  res.status(404).json({
-    error: 'Route not found',
-    message: `Cannot ${req.method} ${req.originalUrl}`
-  });
+  res.status(404).json({ error: 'Route not found' });
 });
-
 
 export default app;
