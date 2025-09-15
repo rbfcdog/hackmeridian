@@ -11,6 +11,7 @@ import {
 } from '@stellar/stellar-sdk';
 import { server, stellarConfig } from '../config/stellar';
 
+
 export async function loadAccount(publicKey: string) {
   try {
     return await server.loadAccount(publicKey);

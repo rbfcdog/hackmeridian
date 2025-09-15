@@ -6,6 +6,7 @@ import {
   Networks,
   Memo,
 } from '@stellar/stellar-sdk';
+import fetch from 'node-fetch';
 import { server, stellarConfig } from '../config/stellar';
 import { loadAccount, submitTransaction, createMemo, createAsset } from '../utils /stellar';
 import { SupabaseService } from './supabaseService';
@@ -54,7 +55,7 @@ export class TransactionService {
         status: 'success',
         submitted_at: new Date().toISOString(),
         ledger: response.ledger,
-        fee_charged: response.fee_charged,
+        fee_charged: '10', // erro no parametro do request pra response
         result_xdr: response.result_xdr,
       });
     } catch (error: any) {
@@ -66,6 +67,19 @@ export class TransactionService {
       throw error;
     }
   }
+
+  static async createTestAccount() {
+
+    const keypair = Keypair.random();
+    const publicKey = keypair.publicKey();
+    const secret = keypair.secret();
+    
+    const response = await fetch(`https://friendbot.stellar.org/?addr=${publicKey}`)
+
+    const data = await response.json();
+    return { publicKey, secret, friendbotResult: data };
+  }
+
 
   static async createAccount(request: CreateAccountRequest): Promise<TransactionRecord> {
     const sourceKeypair = Keypair.fromSecret(request.sourceSecret);
@@ -106,7 +120,7 @@ export class TransactionService {
         status: 'success',
         submitted_at: new Date().toISOString(),
         ledger: response.ledger,
-        fee_charged: response.fee_charged,
+        fee_charged: '10',
         result_xdr: response.result_xdr,
       });
     } catch (error: any) {
@@ -176,7 +190,7 @@ export class TransactionService {
         status: 'success',
         submitted_at: new Date().toISOString(),
         ledger: response.ledger,
-        fee_charged: response.fee_charged,
+        fee_charged: '10',
         result_xdr: response.result_xdr,
       });
     } catch (error: any) {
@@ -236,7 +250,7 @@ export class TransactionService {
         status: 'success',
         submitted_at: new Date().toISOString(),
         ledger: response.ledger,
-        fee_charged: response.fee_charged,
+        fee_charged: '10',
         result_xdr: response.result_xdr,
       });
     } catch (error: any) {

@@ -1,6 +1,9 @@
 import express from 'express';
 import dotenv from 'dotenv';
 
+import { TransactionService } from './services/transactionService';
+
+
 dotenv.config();
 
 const app = express();
@@ -23,11 +26,24 @@ app.get('/api', (req, res) => {
   });
 });
 
+app.get('/create_account', async (req, res) => {
+  try {
+    const result = await TransactionService.createTestAccount();
+    res.json({
+      success: true,
+      ...result
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 app.use('*', (req, res) => {
   res.status(404).json({
     error: 'Route not found',
     message: `Cannot ${req.method} ${req.originalUrl}`
   });
 });
+
 
 export default app;
