@@ -1,4 +1,3 @@
-// Database Types
 export interface User {
   id: string;
   email: string;
@@ -26,6 +25,7 @@ export interface Operation {
   asset_code?: string;
   context?: string;
   stellar_transaction_hash?: string;
+  destination_key?: string;
   created_at: string;
   updated_at: string;
 }
