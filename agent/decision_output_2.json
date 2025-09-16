@@ -1,7 +1,7 @@
 {
-  "message": "Buscando informações sobre a senha fornecida.",
-  "task": "clarification_needed",
+  "message": "Buscando informações sobre a transação com a chave pública fornecida.",
+  "task": "lookup_contact",
   "params": {
-    "message": "A senha 'senha_hahahaha' não parece ser um comando válido. Por favor, forneça um comando ou ação específica."
+    "contactName": "SDIUUO4N7SSV5NJRL2DAZ2JCLOJ6Y2B3UQKWLARVADJLQU5R5KSBKSLR"
   }
 }

@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 # Gerenciador de sessão em memória
 # A chave é o ID do usuário da plataforma de chat (ex: 'whatsapp:+5521999999999')
 SESSION_STORAGE = {}
-USER_INFO = {}
+USER_INFO = {"email": "", "userPublicKey": "GAW7MQA7YLQLJZF7GD6M7JZWQCB4EGPPC46YSZAXQ7Z5LKLKNYFFOIGU", "phone_number": "100000000"}
 
 
 # Configurações da API
@@ -36,6 +36,28 @@ class LoginTool(BaseTool):
         except Exception as e:
             return {"success": False, "message": f"An unexpected error occurred during login: {str(e)}"}
         
+
+class CreateAccountTool(BaseTool):
+    name: str = "Create Account Tool"
+    description: str = "Creates a new user account and returns the necessary keys."
+
+    def _run(self, email: str) -> dict:
+        try:
+            payload = {"email": email, "phone_number": USER_INFO["phone_number"], "public_key": ""}
+
+            response = requests.post(
+                f"{NODE_API_BASE_URL}/api/actions/onboard-user",
+                headers={"x-internal-secret": INTERNAL_API_SECRET},
+                json=payload
+            )
+
+            response.raise_for_status()  # Lança um erro para status 4xx/5xx
+            return response.json()
+        except requests.exceptions.HTTPError as e:
+            return {"success": False, "message": f"Login failed: {e.response.json().get('message')}"}
+        except Exception as e:
+            return {"success": False, "message": f"An unexpected error occurred during login: {str(e)}"}
+
 class ListContactsTool(BaseTool):
     name: str = "List Contacts Tool"
     description: str = "Lists all contacts for the authenticated user."
@@ -57,18 +79,47 @@ class ListContactsTool(BaseTool):
             return {"success": False, "message": "Failed to list contacts."}
         
 
+        
+class AddContactTool(BaseTool):
+    name: str = "Add Contact Tool"
+    description: str = "Adiciona um novo contato para o usuário, usando o novo endpoint e payload."
+
+    def _run(self, session_token: str, userId: str, contact_name: str, public_key: str) -> dict:
+        try:
+            headers = {
+                "Authorization": f"Bearer {session_token}",
+                "x-internal-secret": INTERNAL_API_SECRET
+            }
+            payload = {
+                "userId": userId,
+                "contact_name": contact_name,
+                "public_key": public_key
+            }
+            response = requests.post(
+                f"{NODE_API_BASE_URL}/api/actions/add-contact",
+                headers=headers,
+                json=payload
+            )
+            response.raise_for_status()
+            return response.json()
+        except Exception as e:
+            return {"success": False, "message": "Falha ao adicionar contato."}
+        
+
 class ExecutePaymentTool(BaseTool):
     name: str = "Execute Payment Tool"
     description: str = "Executes a payment transaction."
 
     def _run(self, session_token: str, destination: str, amount: str, assetCode: str, memo: str = "", secretKey: str = "") -> dict:
         try:
+            print("EXECUTING PAYMENTTTTTTTTTTTTTTTT")
             headers = {
                 "Content-Type": "application/json",
                 "Authorization": f"Bearer {session_token}",
                 "x-internal-secret": INTERNAL_API_SECRET
             }
             payload = {
+                "sourcePublicKey": USER_INFO["userPublicKey"],
                 "destination": destination,
                 "amount": amount,
                 "asset_code": assetCode,
@@ -81,15 +132,36 @@ class ExecutePaymentTool(BaseTool):
                 json=payload
             )
 
+            print(response.json())
+
+            response.raise_for_status()
+
+
+            sign_payload = {
+                "secretKey": secretKey,
+                "unsignedXdr": response["xdr"],
+                "operationData": {
+                    "sourcePublicKey": USER_INFO["userPublicKey"],
+                    "destination": destination,
+                    "amount": amount,
+                    "asset_code": assetCode,
+                    "memo": memo
+                }
+            }
 
             response = requests.post(
-                f"{NODE_API_BASE_URL}/api/actions/sign-and",
+                f"{NODE_API_BASE_URL}/api/actions/sign-and-submit-xdr",
                 headers=headers,
-                json=payload
+                json=sign_payload
             )
+
             print(response)
+
             response.raise_for_status()
-            return response.json()
+            # return response.json()
+
+            return response
+
         except Exception as e:
             return {"success": False, "message": "Failed to execute payment."}
         
@@ -98,15 +170,16 @@ class SimpleAgent:
     def __init__(self):
         load_dotenv()
         self.llm = OpenAI(
-            temperature=0,
+            temperature=0.5,
             openai_api_key=os.getenv("OPENAI_API_KEY"),
-            model="gpt-4o-mini",
+            model="gpt-4",
             max_tokens=1000
         )
 
         self.login_tool = LoginTool()
         self.list_contacts_tool = ListContactsTool()
         self.execute_payment_tool = ExecutePaymentTool()
+        self.create_account_tool = CreateAccountTool()
 
         self.transaction_register = {}
         self.secret_key_mode = False
@@ -150,9 +223,19 @@ class SimpleAgent:
                 memo=task_data["params"]["memo"],
                 secretKey=secret_key
             )
-            context = json.dumps(payment_result)
 
-            return context
+            print(payment_result)
+
+            payment_str = json.dumps(payment_result)
+            transaction_str = json.dumps(self.transaction_register)
+
+            context = transaction_str + '\n' + payment_str
+
+            self.secret_key_mode = False
+            self.transaction_register = {}
+
+            return self.final_agent(task_type="execute_payment", context=context)
+        
 
 
         description = f"""
@@ -171,8 +254,8 @@ class SimpleAgent:
 
         Tasks available:
         - login: {{ "email": "" }}
-        - onboard_user: {{ "name": "", "email": "" }}
-        - add_contact: {{ "contactName": "", "publicKey": "" }}
+        - onboard_user: {{"email": "" }}
+        - add_contact: {{ "contact_name": "", "public_key": "" }}
         - list_contacts: {{}}
         - lookup_contact: {{ "contactName": "" }}
         - get_account_balance: {{}}
@@ -185,6 +268,9 @@ class SimpleAgent:
         For destination paramters, check the contacts list to associate the respective name to the public key
         For the asset, need to get the code present in issuers document
 
+        SEARCH IN JSON TOOL FOR TRANSACTION, use the tools provided to find the necessary information. always do it for transaction
+        ALWAYS USE THEM FOR TRANSACTION
+
         ### Rules:
         - Respond ONLY with the JSON object.
         - Never include explanations, markdown, or text outside JSON.
@@ -194,7 +280,7 @@ class SimpleAgent:
         task = Task(
             description=description,
             agent=agent,
-            expected_output="A single valid JSON object, no quotes, only the raw json",
+            expected_output="A output file json",
             output_file=output_file,
             tools=[contact_search_tool, issuers_search_tool]
         )
@@ -230,6 +316,9 @@ class SimpleAgent:
         context = ""
         if task_type == "login":
             return self._handle_login(query["query"], session_id)
+        
+        if task_type == "onboard_user":
+            return self._handle_onboard(task_data["params"]["email"])
 
         elif task_type == "list_contacts":
             session_token = session_data.get("sessionToken")
@@ -270,6 +359,7 @@ class SimpleAgent:
 
         Your job is to generate a short, friendly answer in Portuguese for the user, summarizing the result.
         Respond ONLY with the answer, no markdown, no extra text.
+
         """
         task = Task(
             description=description,
@@ -285,6 +375,29 @@ class SimpleAgent:
         )
         result = crew.kickoff()
         return {"message": str(result)}
+    
+    def _handle_onboard(self, email: str):
+        """Handle user onboarding specifically"""
+        # Executar onboarding
+        onboard_result = self.create_account_tool._run(email)
+
+        print(onboard_result)
+        
+        if onboard_result.get("success"):
+            USER_INFO["email"] = email
+            USER_INFO["userPublicKey"] = onboard_result.get("publicKey")
+
+            return {
+                "message": f"Conta criada com sucesso! Bem-vindo a rede. Seu public key é {onboard_result.get('publicKey')} e sua chave secreta é {onboard_result.get('secretKey')}. Por favor, guarde sua chave secreta com segurança.",
+                "task": "onboard_user",
+                "params": {"email": email, "success": True}
+            }
+        else:
+            return {
+                "message": f"Falha no cadastro: {onboard_result.get('message')}",
+                "task": "onboard_user",
+                "params": {"email": email, "success": False}
+            }
     
 
     def _handle_login(self, query: str, session_id: str):
@@ -338,9 +451,10 @@ if __name__ == "__main__":
     sa = SimpleAgent()
     
     queries = [
-        "quero logar na conta usuario@exemplo.com",
-        "I want to send payment, 1000 BRL to Amigo Jo with a note saying 'Dinner payment'.",
-        "senha_hahahaha"
+        "quero logar na conta emailteste@gmail.com",
+        # "vou criar uma conta no email teste1234@teste.com no nome de Carlos",
+        "I want to send payment, 100 XML to Paulo with a note saying 'Dinner payment'.",
+        "SDIUUO4N7SSV5NJRL2DAZ2JCLOJ6Y2B3UQKWLARVADJLQU5R5KSBKSLR"
         # "What's my current account balance?",
         # "Add Bob to my contacts with public key GABCD1234EFGH5678"
     ]
@@ -352,3 +466,5 @@ if __name__ == "__main__":
         }
 
         response = sa.run(payload, output_file=f"decision_output_{i}.json")
+
+        print(response)

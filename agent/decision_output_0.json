@@ -1,7 +1,7 @@
 {
-  "message": "Tentando logar na conta com o email fornecido",
+  "message": "Realizando o login na conta",
   "task": "login",
   "params": {
-    "email": "usuario@exemplo.com"
+    "email": "emailteste@gmail.com"
   }
 }
