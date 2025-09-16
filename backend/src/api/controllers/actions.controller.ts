@@ -40,8 +40,78 @@ export class ActionsController {
   static async createTestAccount(req: Request, res: Response) {
     try {
       const result = await StellarService.createTestAccount();
-      res.status(201).json({ success: true, ...result });
+      res.status(201).json({ 
+        success: true, 
+        ...result,
+        message: "Stellar test account created and funded successfully"
+      });
     } catch (error: any) {
+      res.status(500).json({ success: false, message: error.message });
+    }
+  }
+
+  static async registerUserWithNewWallet(req: Request, res: Response) {
+    try {
+      const { email, phone_number } = req.body;
+
+      if (!email) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'email is required' 
+        });
+      }
+
+      const { user, secret } = await UserService.registerUserWithNewWallet({ email, phone_number });
+      
+      res.status(201).json({ 
+        success: true, 
+        user: user,
+        secret: secret,
+        WARNING: "Esta é a única vez que a chave secreta (secret) será exibida. Guarde-a em um local seguro e não a compartilhe com ninguém."
+      });
+
+    } catch (error: any) {
+      if (error.message.includes('already exists')) {
+        return res.status(409).json({ success: false, message: error.message });
+      }
+      res.status(500).json({ success: false, message: error.message });
+    }
+  }
+
+  static async registerUserWithExistingWallet(req: Request, res: Response) {
+    try {
+      const { email, phone_number, stellar_public_key } = req.body;
+
+      if (!stellar_public_key) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'stellar_public_key is required' 
+        });
+      }
+
+      if (!email && !phone_number) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'email or phone_number is required' 
+        });
+      }
+
+      const { user } = await UserService.registerUserWithExistingWallet({ 
+        email, 
+        phone_number, 
+        stellar_public_key 
+      });
+      
+      res.status(201).json({ 
+        success: true, 
+        user: user,
+        message: "User registered successfully with existing Stellar wallet"
+      });
+
+    } catch (error: any) {
+      if (error.message.includes('already exists')) {
+        return res.status(409).json({ success: false, message: error.message });
+      }
       res.status(500).json({ success: false, message: error.message });
     }
   }

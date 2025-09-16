@@ -4,9 +4,14 @@ import { authenticateToken } from '../middlewares/auth.middleware';
 
 const router = Router();
 
-router.post('/create-test-account', ActionsController.createTestAccount);
-router.post('/register-user', ActionsController.registerUser);
+
 router.post('/login', ActionsController.login);
+
+router.post('/create-test-account', ActionsController.createTestAccount);
+
+router.post('/register-user-with-new-wallet', ActionsController.registerUserWithNewWallet);
+router.post('/register-user-with-existing-wallet', ActionsController.registerUserWithExistingWallet);
+router.post('/register-user', ActionsController.registerUser); // Legado - usa new wallet
 
 router.use(authenticateToken);
 

@@ -1,6 +1,7 @@
 import { Keypair, Operation, Asset, Memo, Networks, TransactionBuilder } from '@stellar/stellar-sdk';
 import { server } from '../../config/stellar';
 import { OperationRepository } from '../repository/operation.repository';
+import { UserService } from './user.service';
 
 interface BuildPaymentInput {
   sourcePublicKey: string;
@@ -41,6 +42,7 @@ export class StellarService {
 
     return { publicKey, secret };
   }
+
     static async buildPaymentXdr(input: BuildPaymentInput): Promise<string> {
         try {
             const { sourcePublicKey, destination, amount, assetCode, assetIssuer, memoText } = input;
