@@ -17,6 +17,24 @@ interface ExecutePaymentInput extends Omit<BuildPaymentInput, 'sourcePublicKey'>
   secretKey: string;
 }
 
+interface AssetInput {
+  code: string;
+  issuer: string;
+}
+
+interface BuildPathPaymentInput {
+  sourcePublicKey: string;
+  destination: string;
+  destAsset: AssetInput;
+  destAmount: string;
+  sourceAsset: AssetInput;
+}
+
+interface ExecutePathPaymentInput extends Omit<BuildPathPaymentInput, 'sourcePublicKey'> {
+  userId: string;
+  secretKey: string;
+}
+
 export class StellarService {
   static generateStellarKeypair(): { publicKey: string; secret: string } {
     const pair = Keypair.random();
@@ -149,6 +167,138 @@ export class StellarService {
 
         } catch (error) {
             console.error('Error executing payment:', error);
+            
+            if (operationId) {
+                try {
+                    await OperationRepository.update(operationId, {
+                        status: 'FAILED',
+                        context: error instanceof Error ? error.message : 'Unknown error occurred'
+                    });
+                } catch (updateError) {
+                    console.error('Error updating operation status to FAILED:', updateError);
+                }
+            }
+
+            return {
+                success: false,
+                error: error instanceof Error ? error.message : 'Unknown error occurred'
+            };
+        }
+    }
+
+    static async buildPathPaymentXdr(input: BuildPathPaymentInput): Promise<string> {
+        try {
+            const { sourcePublicKey, destination, destAsset, destAmount, sourceAsset } = input;
+
+            const destAssetObj = new Asset(destAsset.code, destAsset.issuer);
+            const sourceAssetObj = new Asset(sourceAsset.code, sourceAsset.issuer);
+
+            const pathsResponse = await server.strictReceivePaths(
+                [sourceAssetObj],
+                destAssetObj,
+                destAmount
+            ).call();
+
+            if (!pathsResponse.records || pathsResponse.records.length === 0) {
+                throw new Error('Não foi encontrado um caminho de conversão entre os ativos.');
+            }
+
+            let bestPath = pathsResponse.records[0];
+            for (const path of pathsResponse.records) {
+                if (parseFloat(path.source_amount) < parseFloat(bestPath.source_amount)) {
+                    bestPath = path;
+                }
+            }
+
+            const sourceAccount = await server.loadAccount(sourcePublicKey);
+
+            const pathAssets = bestPath.path.map((pathAsset: any) => {
+                if (pathAsset.asset_type === 'native') {
+                    return Asset.native();
+                } else {
+                    return new Asset(pathAsset.asset_code, pathAsset.asset_issuer);
+                }
+            });
+
+            const transactionBuilder = new TransactionBuilder(sourceAccount, {
+                fee: '10000',
+                networkPassphrase: Networks.TESTNET
+            });
+
+            transactionBuilder.addOperation(
+                Operation.pathPaymentStrictReceive({
+                    sendAsset: sourceAssetObj,
+                    sendMax: bestPath.source_amount,
+                    destination: destination,
+                    destAsset: destAssetObj,
+                    destAmount: destAmount,
+                    path: pathAssets
+                })
+            );
+
+            const transaction = transactionBuilder.setTimeout(300).build();
+
+            return transaction.toXDR();
+
+        } catch (error) {
+            console.error('Error building path payment XDR:', error);
+            throw new Error(`Failed to build path payment transaction: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
+    }
+
+    static async executePathPayment(input: ExecutePathPaymentInput): Promise<{ success: boolean; hash?: string; error?: string }> {
+        let operationId: string | undefined;
+        
+        try {
+            const { userId, secretKey, destination, destAsset, destAmount, sourceAsset } = input;
+
+            const operationData = {
+                user_id: userId,
+                type: 'PATH_PAYMENT',
+                status: 'PENDING',
+                amount: parseFloat(destAmount),
+                asset_code: destAsset.code,
+                destination_key: destination,
+                context: JSON.stringify({
+                    sourceAsset,
+                    destAsset,
+                    destAmount,
+                    destination
+                })
+            };
+
+            const operation = await OperationRepository.create(operationData);
+            operationId = operation.id;
+
+            const sourceKeypair = Keypair.fromSecret(secretKey);
+            const sourcePublicKey = sourceKeypair.publicKey();
+
+            const xdr = await StellarService.buildPathPaymentXdr({
+                sourcePublicKey,
+                destination,
+                destAsset,
+                destAmount,
+                sourceAsset
+            });
+
+            const transaction = TransactionBuilder.fromXDR(xdr, Networks.TESTNET);
+
+            transaction.sign(sourceKeypair);
+
+            const result = await server.submitTransaction(transaction);
+
+            await OperationRepository.update(operationId, {
+                status: 'COMPLETED',
+                stellar_transaction_hash: result.hash
+            });
+
+            return {
+                success: true,
+                hash: result.hash
+            };
+
+        } catch (error) {
+            console.error('Error executing path payment:', error);
             
             if (operationId) {
                 try {

@@ -260,4 +260,57 @@ export class ActionsController {
     }
   }
 
+  static async buildPathPaymentXdr(req: Request, res: Response) {
+    try {
+      const { sourcePublicKey, destination, destAsset, destAmount, sourceAsset } = req.body;
+
+      const xdr = await StellarService.buildPathPaymentXdr({
+        sourcePublicKey,
+        destination,
+        destAsset,
+        destAmount,
+        sourceAsset
+      });
+
+      res.status(200).json({ 
+        success: true, 
+        xdr: xdr,
+        message: 'Path payment XDR built successfully. Sign and submit externally.'
+      });
+
+    } catch (error: any) {
+      res.status(500).json({ success: false, message: error.message });
+    }
+  }
+
+  static async executePathPayment(req: Request, res: Response) {
+    try {
+      const { destination, destAsset, destAmount, sourceAsset, secretKey } = req.body;
+      const userId = req.user?.userId;
+
+      if (!userId) {
+        return res.status(401).json({
+          success: false,
+          message: 'User not authenticated'
+        });
+      }
+
+      const result = await StellarService.executePathPayment({
+        userId,
+        destination,
+        destAsset,
+        destAmount,
+        sourceAsset,
+        secretKey
+      });
+
+      res.status(200).json({ 
+        ...result 
+      });
+
+    } catch (error: any) {
+      res.status(500).json({ success: false, message: error.message });
+    }
+  }
+
 }

@@ -86,3 +86,35 @@ export const getOperationHistorySchema = z.object({
 export const createTestAccountSchema = z.object({
   body: z.object({}).optional(),
 });
+
+export const buildPathPaymentXdrSchema = z.object({
+  body: z.object({
+    sourcePublicKey: z.string().min(1, 'Source public key is required').length(56, 'Invalid public key format'),
+    destination: z.string().min(1, 'Destination is required').length(56, 'Invalid public key format'),
+    destAsset: z.object({
+      code: z.string().min(1, 'Destination asset code is required'),
+      issuer: z.string().length(56, 'Invalid destination asset issuer public key format'),
+    }),
+    destAmount: z.string().min(1, 'Destination amount is required'),
+    sourceAsset: z.object({
+      code: z.string().min(1, 'Source asset code is required'),
+      issuer: z.string().length(56, 'Invalid source asset issuer public key format'),
+    }),
+  }),
+});
+
+export const executePathPaymentSchema = z.object({
+  body: z.object({
+    destination: z.string().min(1, 'Destination is required').length(56, 'Invalid public key format'),
+    destAsset: z.object({
+      code: z.string().min(1, 'Destination asset code is required'),
+      issuer: z.string().length(56, 'Invalid destination asset issuer public key format'),
+    }),
+    destAmount: z.string().min(1, 'Destination amount is required'),
+    sourceAsset: z.object({
+      code: z.string().min(1, 'Source asset code is required'),
+      issuer: z.string().length(56, 'Invalid source asset issuer public key format'),
+    }),
+    secretKey: z.string().min(1, 'Secret key is required'),
+  }),
+});

@@ -13,7 +13,9 @@ import {
   buildPaymentXdrSchema,
   executePaymentSchema,
   getOperationHistorySchema,
-  createTestAccountSchema
+  createTestAccountSchema,
+  buildPathPaymentXdrSchema,
+  executePathPaymentSchema
 } from '../dtos/actions.dto';
 
 const router = Router();
@@ -34,6 +36,9 @@ router.post('/list-contacts', validate(listContactsSchema), ActionsController.li
 
 router.post('/build-payment-xdr', validate(buildPaymentXdrSchema), ActionsController.buildPaymentXdr);
 router.post('/execute-payment', validate(executePaymentSchema), ActionsController.executePayment);
+
+router.post('/build-path-payment-xdr', validate(buildPathPaymentXdrSchema), ActionsController.buildPathPaymentXdr);
+router.post('/execute-path-payment', validate(executePathPaymentSchema), ActionsController.executePathPayment);
 
 router.post('/get-operation-history', validate(getOperationHistorySchema), ActionsController.getOperationHistory);
 
