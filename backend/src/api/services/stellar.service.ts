@@ -1,6 +1,7 @@
 import { Keypair, Operation, Asset, Memo, Networks, TransactionBuilder } from '@stellar/stellar-sdk';
 import { server } from '../../config/stellar';
 import { OperationRepository } from '../repository/operation.repository';
+import { Operation as OpType } from '../../types';
 
 interface BuildPaymentInput {
   sourcePublicKey: string;
@@ -9,11 +10,6 @@ interface BuildPaymentInput {
   assetCode?: string;
   assetIssuer?: string;
   memoText?: string;
-}
-
-interface ExecutePaymentInput extends Omit<BuildPaymentInput, 'sourcePublicKey'> {
-  userId: string;
-  secretKey: string;
 }
 
 interface AssetInput {
@@ -27,11 +23,6 @@ interface BuildPathPaymentInput {
   destAsset: AssetInput;
   destAmount: string;
   sourceAsset: AssetInput;
-}
-
-interface ExecutePathPaymentInput extends Omit<BuildPathPaymentInput, 'sourcePublicKey'> {
-  userId: string;
-  secretKey: string;
 }
 
 export class StellarService {
@@ -100,19 +91,21 @@ export class StellarService {
         }
     }
 
-    private static async _executeTransaction(
+    public static async signAndSubmitXdr(
         _userId: string,
         secretKey: string,
         unsignedXdr: string,
-        operationData: any
+        operationData: Omit<OpType, 'id' | 'created_at' | 'updated_at' | 'stellar_transaction_hash' | 'status'>
     ): Promise<{ success: boolean; hash?: string; error?: string }> {
         let operationId: string | undefined;
         
         try {
-            const operation = await OperationRepository.create(operationData);
-            operationId = operation.id;
+            const operationRecord = await OperationRepository.create({
+                ...operationData,
+                status: 'PENDING'
+            });
+            operationId = operationRecord.id;
 
-            
             const transaction = TransactionBuilder.fromXDR(unsignedXdr, Networks.TESTNET);
 
             const sourceKeypair = Keypair.fromSecret(secretKey);
@@ -144,43 +137,6 @@ export class StellarService {
                 }
             }
 
-            return {
-                success: false,
-                error: error instanceof Error ? error.message : 'Unknown error occurred'
-            };
-        }
-    }
-
-    static async executePayment(input: ExecutePaymentInput): Promise<{ success: boolean; hash?: string; error?: string }> {
-        try {
-            const { userId, secretKey, destination, amount, assetCode, assetIssuer, memoText } = input;
-
-            const sourceKeypair = Keypair.fromSecret(secretKey);
-            const sourcePublicKey = sourceKeypair.publicKey();
-
-            const unsignedXdr = await StellarService.buildPaymentXdr({
-                sourcePublicKey,
-                destination,
-                amount,
-                assetCode,
-                assetIssuer,
-                memoText
-            });
-
-            const operationData = {
-                user_id: userId,
-                type: 'PAYMENT',
-                status: 'PENDING',
-                amount: parseFloat(amount),
-                asset_code: assetCode || 'XLM',
-                destination_key: destination,
-                context: memoText ? `Memo: ${memoText}` : undefined
-            };
-
-            return await StellarService._executeTransaction(userId, secretKey, unsignedXdr, operationData);
-
-        } catch (error) {
-            console.error('Error in executePayment:', error);
             return {
                 success: false,
                 error: error instanceof Error ? error.message : 'Unknown error occurred'
@@ -245,47 +201,6 @@ export class StellarService {
         } catch (error) {
             console.error('Error building path payment XDR:', error);
             throw new Error(`Failed to build path payment transaction: ${error instanceof Error ? error.message : 'Unknown error'}`);
-        }
-    }
-
-    static async executePathPayment(input: ExecutePathPaymentInput): Promise<{ success: boolean; hash?: string; error?: string }> {
-        try {
-            const { userId, secretKey, destination, destAsset, destAmount, sourceAsset } = input;
-
-            const sourceKeypair = Keypair.fromSecret(secretKey);
-            const sourcePublicKey = sourceKeypair.publicKey();
-
-            const unsignedXdr = await StellarService.buildPathPaymentXdr({
-                sourcePublicKey,
-                destination,
-                destAsset,
-                destAmount,
-                sourceAsset
-            });
-
-            const operationData = {
-                user_id: userId,
-                type: 'PATH_PAYMENT',
-                status: 'PENDING',
-                amount: parseFloat(destAmount),
-                asset_code: destAsset.code,
-                destination_key: destination,
-                context: JSON.stringify({
-                    sourceAsset,
-                    destAsset,
-                    destAmount,
-                    destination
-                })
-            };
-
-            return await StellarService._executeTransaction(userId, secretKey, unsignedXdr, operationData);
-
-        } catch (error) {
-            console.error('Error in executePathPayment:', error);
-            return {
-                success: false,
-                error: error instanceof Error ? error.message : 'Unknown error occurred'
-            };
         }
     }
 

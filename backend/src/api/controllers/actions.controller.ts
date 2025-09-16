@@ -155,37 +155,6 @@ export class ActionsController {
     }
   }
 
-  static async executePayment(req: AuthenticatedRequest, res: Response) {
-    try {
-      const { destination, amount, assetCode, assetIssuer, memoText, secretKey } = req.body;
-      const userId = req.user?.userId;
-
-      if (!userId) {
-        return res.status(401).json({
-          success: false,
-          message: 'User not authenticated'
-        });
-      }
-
-      const result = await StellarService.executePayment({
-        userId,
-        destination,
-        amount,
-        assetCode,
-        assetIssuer,
-        memoText,
-        secretKey
-      });
-
-      res.status(200).json({ 
-        ...result 
-      });
-
-    } catch (error: any) {
-      res.status(500).json({ success: false, message: error.message });
-    }
-  }
-
   static async getOperationHistory(req: AuthenticatedRequest, res: Response) {
     try {
       const userId = req.user?.userId;
@@ -222,36 +191,6 @@ export class ActionsController {
         success: true, 
         xdr: xdr,
         message: 'Path payment XDR built successfully. Sign and submit externally.'
-      });
-
-    } catch (error: any) {
-      res.status(500).json({ success: false, message: error.message });
-    }
-  }
-
-  static async executePathPayment(req: AuthenticatedRequest, res: Response) {
-    try {
-      const { destination, destAsset, destAmount, sourceAsset, secretKey } = req.body;
-      const userId = req.user?.userId;
-
-      if (!userId) {
-        return res.status(401).json({
-          success: false,
-          message: 'User not authenticated'
-        });
-      }
-
-      const result = await StellarService.executePathPayment({
-        userId,
-        destination,
-        destAsset,
-        destAmount,
-        sourceAsset,
-        secretKey
-      });
-
-      res.status(200).json({ 
-        ...result 
       });
 
     } catch (error: any) {
@@ -313,6 +252,40 @@ export class ActionsController {
         status: result.status,
         message: result.message
       });
+
+    } catch (error: any) {
+      res.status(500).json({ success: false, message: error.message });
+    }
+  }
+
+  static async signAndSubmitXdr(req: AuthenticatedRequest, res: Response) {
+    try {
+      const userId = req.user?.userId;
+      if (!userId) {
+        return res.status(401).json({ success: false, message: 'Unauthorized' });
+      }
+
+      const { secretKey, unsignedXdr, operationData } = req.body;
+      
+      const result = await StellarService.signAndSubmitXdr(
+        userId,
+        secretKey,
+        unsignedXdr,
+        operationData
+      );
+
+      if (result.success) {
+        res.status(200).json({
+          success: true,
+          hash: result.hash,
+          message: 'Transaction signed and submitted successfully'
+        });
+      } else {
+        res.status(400).json({
+          success: false,
+          error: result.error
+        });
+      }
 
     } catch (error: any) {
       res.status(500).json({ success: false, message: error.message });
