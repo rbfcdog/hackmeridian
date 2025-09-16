@@ -2,5 +2,5 @@ fastapi
 uvicorn[standard]
 requests
 crewai         
-crewai_tools   
+crewai-tools   
 langchain-openai

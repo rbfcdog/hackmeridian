@@ -112,27 +112,22 @@ class ExecutePaymentTool(BaseTool):
 
     def _run(self, session_token: str, destination: str, amount: str, assetCode: str, memo: str = "", secretKey: str = "") -> dict:
         try:
-            print("EXECUTING PAYMENTTTTTTTTTTTTTTTT")
             headers = {
                 "Content-Type": "application/json",
                 "Authorization": f"Bearer {session_token}",
                 "x-internal-secret": INTERNAL_API_SECRET
             }
-            
             # ✅ Buscar userId da sessão ativa
             session_data = None
             for session_id, data in SESSION_STORAGE.items():
                 if data.get("sessionToken") == session_token:
                     session_data = data
                     break
-            
             if not session_data:
                 return {"success": False, "message": "Session not found or expired"}
-            
             user_id = session_data.get("userId")
             if not user_id:
                 return {"success": False, "message": "User ID not found in session"}
-                
             payload = {
                 "sourcePublicKey": USER_INFO["userPublicKey"],
                 "destination": destination,
@@ -140,18 +135,12 @@ class ExecutePaymentTool(BaseTool):
                 "asset_code": assetCode,
                 "memo": memo
             }
-
             response = requests.post(
                 f"{NODE_API_BASE_URL}/api/actions/build-payment-xdr",
                 headers=headers,
                 json=payload
             )
-
-            print(response.json())
-
             response.raise_for_status()
-
-
             sign_payload = {
                 "secretKey": secretKey,
                 "unsignedXdr": response.json()["xdr"],  # ✅ Corrigir acesso ao JSON
@@ -164,20 +153,13 @@ class ExecutePaymentTool(BaseTool):
                     "context": memo                               # ✅ Correto - campo 'context' na tabela
                 }
             }
-
             response = requests.post(
                 f"{NODE_API_BASE_URL}/api/actions/sign-and-submit-xdr",
                 headers=headers,
                 json=sign_payload
             )
-
-            print(response)
-
             response.raise_for_status()
-            # return response.json()
-
-            return response
-
+            return response.json()
         except Exception as e:
             return {"success": False, "message": "Failed to execute payment."}
         
@@ -226,10 +208,8 @@ class SimpleAgent:
 
 
         if self.secret_key_mode:
-            print("SECRETTTTTTTTTTTTTTTT")
             secret_key = query["query"]
             task_data = self.transaction_register
-            print(task_data)
             session_token = SESSION_STORAGE.get(session_id).get("sessionToken")
             payment_result = self.execute_payment_tool._run(
                 session_token=session_token,
@@ -239,8 +219,6 @@ class SimpleAgent:
                 memo=task_data["params"]["memo"],
                 secretKey=secret_key
             )
-
-            print(payment_result)
 
             payment_str = json.dumps(payment_result)
             transaction_str = json.dumps(self.transaction_register)
@@ -309,9 +287,6 @@ class SimpleAgent:
         )
 
         result = crew.kickoff()
-        print("Result:", result)
-        print(f"JSON saved to {output_file}")
-
         task_data = json.load(open(output_file, "r"))
 
         public_tasks = ["login", "onboard_user"]
@@ -322,7 +297,6 @@ class SimpleAgent:
 
         if task_type not in public_tasks:
             if not session_data or not session_data.get("sessionToken"):
-                print("session morreu")
                 return {
                     "message": "Você precisa fazer login primeiro. Por favor, envie seu email para autenticar. Exemplo: 'fazer login com email@exemplo.com'",
                     "task": "clarification_needed",
@@ -342,7 +316,6 @@ class SimpleAgent:
             context = json.dumps(contacts)
 
         if task_type == "execute_payment":
-            print("enter_pay")
             session_token = session_data.get("sessionToken")    
 
             self.transaction_register = task_data 
@@ -397,8 +370,6 @@ class SimpleAgent:
         # Executar onboarding
         onboard_result = self.create_account_tool._run(email)
 
-        print(onboard_result)
-        
         if onboard_result.get("success"):
             USER_INFO["email"] = email
             USER_INFO["userPublicKey"] = onboard_result.get("publicKey")
@@ -436,8 +407,6 @@ class SimpleAgent:
         # Executar login
         login_result = self.login_tool._run(email)
 
-        print(login_result)
-        
         if login_result.get("success"):
             # Salvar token na sessão
             SESSION_STORAGE[session_id] = {
