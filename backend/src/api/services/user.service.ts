@@ -1,41 +1,39 @@
-// src/api/services/user.service.ts
 import { supabase } from '../../config/supabase';
 import { StellarService } from './stellar.service';
 
 
-// Interface para o payload de registro de usuário
 export interface RegisterUserPayload {
   email?: string;
   phone_number?: string;
 }
 
 export interface AddContactPayload {
-  user_email: string;
-  contact_email: string;
+  userId: string;
   contact_name: string;
+  public_key: string;
 }
 
 interface LookupContactPayload {
-  user_email: string;
+  userId: string;
   contact_name: string;
 }
 
+interface ListContactsPayload {
+  userId: string;
+}
 
 export class UserService {
 
   static async registerUser(userData: RegisterUserPayload): Promise<{ user: any; secret: string }> {
-    // 1. Gera um novo par de chaves Stellar para o usuário
     const { publicKey, secret } = StellarService.generateStellarKeypair();
     console.log(`Generated new public key for user: ${publicKey}`);
 
-    // 2. Prepara os dados para salvar no banco de dados
     const userToCreate = {
       email: userData.email,
       phone_number: userData.phone_number,
-      stellar_public_key: publicKey, // Usa a chave pública recém-gerada
+      stellar_public_key: publicKey,
     };
 
-    // 3. Insere o novo usuário no banco de dados
     const { data, error } = await supabase
       .from('users')
       .insert(userToCreate)
@@ -46,50 +44,34 @@ export class UserService {
       throw new Error(`Database error: ${error.message}`);
     }
 
-    // 4. Retorna o usuário criado E a chave secreta
-    // A chave secreta não é salva no banco de dados por segurança.
     return { user: data, secret: secret };
   }
 
 
   static async addContact(payload: AddContactPayload): Promise<any> {
-    const { user_email, contact_email, contact_name } = payload;
+    const { userId, contact_name, public_key } = payload;
 
-    // 1. Encontra o ID do usuário que está adicionando o contato (o "dono")
-    const { data: ownerUser, error: ownerError } = await supabase
+    const { data: user, error: userError } = await supabase
       .from('users')
       .select('id')
-      .eq('email', user_email)
+      .eq('id', userId)
       .single();
 
-    if (ownerError || !ownerUser) {
-      throw new Error(`User (owner) with email ${user_email} not found.`);
+    if (userError || !user) {
+      throw new Error(`User with ID ${userId} not found.`);
     }
 
-    // 2. Encontra a chave pública do usuário que está sendo adicionado como contato
-    const { data: contactUser, error: contactError } = await supabase
-      .from('users')
-      .select('stellar_public_key')
-      .eq('email', contact_email)
-      .single();
-
-    if (contactError || !contactUser) {
-      throw new Error(`Contact with email ${contact_email} not found.`);
-    }
-
-    // 3. Insere o novo registro na tabela 'contacts'
     const { data: newContact, error: insertError } = await supabase
       .from('contacts')
       .insert({
-        owner_id: ownerUser.id,
+        owner_id: userId,
         contact_name: contact_name,
-        stellar_public_key: contactUser.stellar_public_key,
+        stellar_public_key: public_key,
       })
       .select()
       .single();
 
     if (insertError) {
-      // Trata a violação de constraint 'unique' (usuário já tem um contato com esse nome)
       if (insertError.code === '23505') {
         throw new Error(`A contact with the name "${contact_name}" already exists.`);
       }
@@ -99,26 +81,23 @@ export class UserService {
     return newContact;
   }
 
-  static async lookupContactByName(payload: LookupContactPayload): Promise<any> {
-    const { user_email, contact_name } = payload;
+  static async lookupContactByNameAndUserId(payload: LookupContactPayload): Promise<any> {
+    const { userId, contact_name } = payload;
 
-    // 1. Encontra o ID do usuário (dono dos contatos) com base no email fornecido.
     const { data: user, error: userError } = await supabase
       .from('users')
       .select('id')
-      .eq('email', user_email)
+      .eq('id', userId)
       .single();
 
     if (userError || !user) {
-      throw new Error(`User with email ${user_email} not found.`);
+      throw new Error(`User with ID ${userId} not found.`);
     }
 
-    // 2. Com o ID do usuário, procura na tabela 'contacts' pelo registro
-    // que corresponde ao ID do dono e ao nome do contato.
     const { data: contact, error: contactError } = await supabase
       .from('contacts')
-      .select('*') // Retorna todos os dados do contato
-      .eq('owner_id', user.id)
+      .select('*')
+      .eq('owner_id', userId)
       .eq('contact_name', contact_name)
       .single();
 
@@ -127,6 +106,32 @@ export class UserService {
     }
 
     return contact;
+  }
+
+    static async listContacts(payload: ListContactsPayload): Promise<any[]> {
+    const { userId } = payload;
+
+    const { data: user, error: userError } = await supabase
+      .from('users')
+      .select('id')
+      .eq('id', userId)
+      .single();
+
+    if (userError || !user) {
+      throw new Error(`User with ID ${userId} not found.`);
+    }
+
+    const { data: contacts, error: contactsError } = await supabase
+      .from('contacts')
+      .select('*')
+      .eq('owner_id', userId)
+      .order('contact_name', { ascending: true });
+
+    if (contactsError) {
+      throw new Error(`Database error: ${contactsError.message}`);
+    }
+
+    return contacts || [];
   }
 
   

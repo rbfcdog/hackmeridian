@@ -17,10 +17,6 @@ interface ExecutePaymentInput extends Omit<BuildPaymentInput, 'sourcePublicKey'>
 }
 
 export class StellarService {
-  /**
-   * Gera um novo par de chaves Stellar (pública e secreta).
-   * Esta operação não interage com a rede.
-   */
   static generateStellarKeypair(): { publicKey: string; secret: string } {
     const pair = Keypair.random();
     return {
@@ -29,9 +25,6 @@ export class StellarService {
     };
   }
 
-  /**
-   * Cria uma nova conta na Testnet da Stellar e a financia usando o Friendbot.
-   */
   static async createTestAccount(): Promise<{ publicKey: string; secret: string }> {
     const { publicKey, secret } = this.generateStellarKeypair();
 
