@@ -1,0 +1,5 @@
+{
+  "message": "Solicitando o saldo atual da conta do usuário.",
+  "task": "get_account_balance",
+  "params": {}
+}
