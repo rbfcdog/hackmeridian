@@ -1,6 +1,1 @@
-fastapi
-uvicorn[standard]
-requests
-crewai         
-langchain-openai
-crewai-tools   
+source venv/bin/activate
