@@ -1,0 +1,10 @@
+{
+  "message": "Enviar 50 USD para Alice com uma nota dizendo 'Pagamento do jantar'.",
+  "task": "execute_payment",
+  "params": {
+    "destination": "Alice",
+    "amount": "50",
+    "assetCode": "USD",
+    "memo": "Pagamento do jantar"
+  }
+}
