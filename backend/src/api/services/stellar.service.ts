@@ -57,6 +57,28 @@ export class StellarService {
 
             const sourceAccount = await server.loadAccount(sourcePublicKey);
 
+            const assetToSend = (assetCode && assetIssuer) ? new Asset(assetCode, assetIssuer) : Asset.native();
+            
+            const balanceLine = sourceAccount.balances.find(b => {
+                if (assetToSend.isNative()) return b.asset_type === 'native';
+                return b.asset_type !== 'native' && (b as any).asset_code === assetToSend.getCode() && (b as any).asset_issuer === assetToSend.getIssuer();
+            });
+
+            if (!balanceLine || parseFloat(balanceLine.balance) < parseFloat(amount)) {
+                throw new Error(`Saldo insuficiente. Você não tem ${amount} ${assetCode || 'XLM'} para enviar.`);
+            }
+
+            const nativeBalanceLine = sourceAccount.balances.find(b => b.asset_type === 'native');
+            const xlmBalance = nativeBalanceLine ? parseFloat(nativeBalanceLine.balance) : 0;
+            
+            const minimumReserve = 1.5; 
+            const feeInXlm = 10000 / 10000000;
+            let amountInXlm = assetToSend.isNative() ? parseFloat(amount) : 0;
+
+            if (xlmBalance - amountInXlm - feeInXlm < minimumReserve) {
+                throw new Error('Saldo de XLM insuficiente para cobrir a taxa da transação e a reserva mínima da conta.');
+            }
+
             let asset: Asset;
             if (assetCode && assetIssuer) {
                 asset = new Asset(assetCode, assetIssuer);
@@ -169,6 +191,26 @@ export class StellarService {
             }
 
             const sourceAccount = await server.loadAccount(sourcePublicKey);
+
+            const sourceBalanceLine = sourceAccount.balances.find(b => {
+                if (sourceAssetObj.isNative()) return b.asset_type === 'native';
+                return b.asset_type !== 'native' && (b as any).asset_code === sourceAssetObj.getCode() && (b as any).asset_issuer === sourceAssetObj.getIssuer();
+            });
+
+            if (!sourceBalanceLine || parseFloat(sourceBalanceLine.balance) < parseFloat(bestPath.source_amount)) {
+                throw new Error(`Saldo de ${sourceAsset.code} insuficiente para a conversão. Necessário: ${bestPath.source_amount}, disponível: ${sourceBalanceLine?.balance || '0'}.`);
+            }
+
+            const nativeBalanceLine = sourceAccount.balances.find(b => b.asset_type === 'native');
+            const xlmBalance = nativeBalanceLine ? parseFloat(nativeBalanceLine.balance) : 0;
+            
+            const minimumReserve = 1.5; 
+            const feeInXlm = 10000 / 10000000;
+            let amountInXlm = sourceAssetObj.isNative() ? parseFloat(bestPath.source_amount) : 0;
+
+            if (xlmBalance - amountInXlm - feeInXlm < minimumReserve) {
+                throw new Error('Saldo de XLM insuficiente para cobrir a taxa da transação e a reserva mínima da conta.');
+            }
 
             const pathAssets = bestPath.path.map((pathAsset: any) => {
                 if (pathAsset.asset_type === 'native') {
