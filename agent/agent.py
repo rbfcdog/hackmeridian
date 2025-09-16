@@ -15,7 +15,7 @@ SESSION_STORAGE = {}
 
 # Configurações da API
 NODE_API_BASE_URL = os.getenv("NODE_API_BASE_URL", "http://localhost:3001")
-INTERNAL_API_SECRET = os.getenv("INTERNAL_API_SECRET", "your-shared-secret")
+INTERNAL_API_SECRET = os.getenv("INTERNAL_API_SECRET", "hackathon-secret-2024")
 
 # --- Tools ---
 class LoginTool(BaseTool):
@@ -67,17 +67,21 @@ class ListContactsTool(BaseTool):
     def _run(self, session_token: str) -> dict:
         try:
             headers = {
+                "Content-Type": "application/json",
                 "Authorization": f"Bearer {session_token}",
                 "x-internal-secret": INTERNAL_API_SECRET
             }
-            response = requests.get(
+            print(headers)
+            response = requests.post(
                 f"{NODE_API_BASE_URL}/api/actions/list-contacts",
                 headers=headers
             )
+            print(response)
             response.raise_for_status()
             return response.json()
         except Exception as e:
             return {"success": False, "message": "Failed to list contacts."}
+        
 
 class GetAccountBalanceTool(BaseTool):
     name: str = "Get Account Balance Tool"
@@ -409,7 +413,7 @@ You must only respond with a JSON object with the following structure:
     }`
                 
             """,
-            tools=[],
+            tools=[JSONSearchTool(json_path="contacts.json")],
             llm=self.llm,
             verbose=True,
             max_iter=3
@@ -451,7 +455,7 @@ You must only respond with a JSON object with the following structure:
         analysis_task = Task(
             description=analysis_task_description,
             agent=agent,
-            expected_output="Single task name"
+            expected_output="Single task name",
         )
         
         analysis_crew = Crew(
@@ -473,10 +477,17 @@ You must only respond with a JSON object with the following structure:
                     "params": {"requires_login": True}
                 }
         
-        # Se for uma tarefa de login, executar diretamente
+        context = ""
         if task_type == "login":
             return self._handle_login(query, session_id)
-        
+        elif task_type == "list_contacts":
+            session_token = SESSION_STORAGE.get(session_id, {}).get("sessionToken")
+            context = list_contacts_tool._run(session_token=session_token)
+            import json 
+            context = json.dumps(context)
+
+
+
         # Para outras tarefas, continuar com o fluxo normal
         session_token = SESSION_STORAGE.get(session_id, {}).get("sessionToken", "")
         
@@ -486,6 +497,7 @@ You must only respond with a JSON object with the following structure:
 
             **User's Query:** "{query}"
             **Session ID:** "{session_id}"
+            **Context** {context}
             **Authentication Token Available:** {"Yes" if session_token else "No"}
 
             **Your Goal:**
@@ -525,7 +537,7 @@ You must only respond with a JSON object with the following structure:
             agent=agent,
             expected_output="A single valid JSON object that conforms to the model.",
             output_file="decision_output.json",
-            tools=[JSONSearchTool(json_path="contacts.json")]
+            tools=[JSONSearchTool(json_path="contacts.json"), list_contacts_tool]
         )
 
         crew = Crew(
@@ -536,24 +548,31 @@ You must only respond with a JSON object with the following structure:
         )
 
         result = crew.kickoff()
+
+        print(result)
         
         # Se o resultado for uma tarefa que requer execução de ferramenta, executar aqui
         try:
-            import json
-            if isinstance(result, str):
-                task_data = json.loads(result)
-            else:
-                task_data = result
+            import json 
+            with open("decision_output.json", "r") as f:
+                task_data = json.load(f)
+
+            print("-"*50)
+            print(task_data)
+            print("-"*50)
                 
-            if isinstance(task_data, dict):
-                task_type = task_data.get("task")
-                session_token = SESSION_STORAGE.get(session_id, {}).get("sessionToken")
-                
-                # Executar ferramentas protegidas se houver token
-                if session_token and task_type in ["add_contact", "list_contacts", "get_account_balance", "execute_payment"]:
-                    tool_result = self._execute_protected_task(task_type, task_data.get("params", {}), session_token)
-                    if tool_result:
-                        task_data["tool_result"] = tool_result
+            task_type = task_data.get("task")
+            print(task_type)
+            session_token = SESSION_STORAGE.get(session_id, {}).get("sessionToken")
+            
+            # Executar ferramentas protegidas se houver token
+            if session_token and task_type in ["add_contact", "list_contacts", "get_account_balance", "execute_payment"]:
+                print("chegou task_type")
+                tool_result = self._execute_protected_task(task_type, task_data.get("params", {}), session_token)
+                if tool_result:
+                    task_data["tool_result"] = tool_result
+
+            print(task_data)
                         
             return task_data
         except:
@@ -561,6 +580,7 @@ You must only respond with a JSON object with the following structure:
             return result
     
     def _execute_protected_task(self, task_type: str, params: dict, session_token: str):
+        print("chegou protected task")
         """Execute protected tasks using the appropriate tools"""
         try:
             if task_type == "add_contact":
@@ -570,6 +590,7 @@ You must only respond with a JSON object with the following structure:
                     publicKey=params.get("publicKey", "")
                 )
             elif task_type == "list_contacts":
+                print("foo")
                 return list_contacts_tool._run(session_token=session_token)
             elif task_type == "get_account_balance":
                 return get_account_balance_tool._run(session_token=session_token)
@@ -600,11 +621,14 @@ You must only respond with a JSON object with the following structure:
             }
         
         email = emails[0]
+
+        print(email)
         
         # Executar login
         login_result = login_tool._run(email)
         
         if login_result.get("success"):
+            print("SUCCESSSSSSSS")
             # Salvar token na sessão
             SESSION_STORAGE[session_id] = {
                 "sessionToken": login_result.get("sessionToken"),
@@ -631,7 +655,13 @@ if __name__ == "__main__":
     print("Note: This is a demo session. In production, session_id would come from WhatsApp user ID.")
     
     demo_session_id = "demo_user_session"
-    
+
+    response = crew.process_query("login usuario@exemplo.com", demo_session_id)
+    print(response)
+
+    response = crew.process_query("liste todos os contatos", demo_session_id)
+    print(response)
+
     while True:
         user_input = input("User: ")
         if user_input.lower() in ["exit", "quit"]:
