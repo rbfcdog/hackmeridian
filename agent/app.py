@@ -1,9 +1,22 @@
+
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from agent import StellarConverseCrew
+from simple import SimpleAgent
+
 
 app = FastAPI()
-crew = StellarConverseCrew()
+
+# Allow CORS for all origins (for development; restrict in production)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+crew = SimpleAgent()
 
 class QueryRequest(BaseModel):
     query: str
