@@ -1,5 +1,5 @@
 {
-  "message": "Enviando pagamento para Paulo",
+  "message": "Pagamento de jantar para Paulo",
   "task": "execute_payment",
   "params": {
     "destination": "GBLC4ITHNUA36WHDXCGO4UHNDLHVE3BCICFX72GUAJ244BXLTO3EBPDA",
