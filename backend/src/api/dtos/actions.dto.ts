@@ -94,13 +94,11 @@ export const signAndSubmitXdrSchema = z.object({
     unsignedXdr: z.string().min(1, 'Unsigned XDR is required'),
     operationData: z.object({
       user_id: z.string().min(1, 'User ID is required'),
-      operation_type: z.enum(['PAYMENT', 'PATH_PAYMENT_STRICT_RECEIVE', 'CREATE_ACCOUNT', 'MANAGE_OFFER', 'CHANGE_TRUST']),
-      source_account: z.string().length(56, 'Invalid source account format'),
-      destination_account: z.string().length(56, 'Invalid destination account format').optional(),
+      type: z.enum(['PAYMENT', 'PATH_PAYMENT_STRICT_RECEIVE', 'CREATE_ACCOUNT', 'MANAGE_OFFER', 'CHANGE_TRUST']),
+      destination_key: z.string().length(56, 'Invalid destination key format').optional(),
       asset_code: z.string().optional(),
-      asset_issuer: z.string().length(56, 'Invalid asset issuer format').optional(),
       amount: z.string().optional(),
-      memo: z.string().optional(),
+      context: z.string().optional(),
     }),
   }),
 });

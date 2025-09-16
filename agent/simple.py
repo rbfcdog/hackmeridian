@@ -156,13 +156,12 @@ class ExecutePaymentTool(BaseTool):
                 "secretKey": secretKey,
                 "unsignedXdr": response.json()["xdr"],  # ✅ Corrigir acesso ao JSON
                 "operationData": {
-                    "user_id": user_id,                           # ✅ Usar userId da sessão
-                    "operation_type": "PAYMENT",                  # ✅ Campo correto
-                    "source_account": USER_INFO["userPublicKey"], # ✅ Campo correto
-                    "destination_account": destination,           # ✅ Campo correto  
-                    "amount": amount,
-                    "asset_code": assetCode,
-                    "memo": memo
+                    "user_id": user_id,                           # ✅ Correto - existe na tabela
+                    "type": "PAYMENT",                            # ✅ Correto - campo 'type' na tabela
+                    "destination_key": destination,               # ✅ Correto - campo 'destination_key' na tabela
+                    "amount": amount,                             # ✅ Correto - existe na tabela
+                    "asset_code": assetCode,                      # ✅ Correto - existe na tabela
+                    "context": memo                               # ✅ Correto - campo 'context' na tabela
                 }
             }
 
