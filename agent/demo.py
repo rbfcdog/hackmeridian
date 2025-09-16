@@ -19,7 +19,7 @@ def demo_authentication_flow():
     
     # Teste 2: Fazer login
     print("2. Fazendo login:")
-    result = crew.process_query("fazer login com dev@hackathon.com", session_id)
+    result = crew.process_query("fazer login com usuario@exemplo.com", session_id)
     print(f"Resposta: {result}")
     print(f"Sessão armazenada: {SESSION_STORAGE.get(session_id, {})}\n")
     

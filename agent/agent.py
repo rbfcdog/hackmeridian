@@ -1,4 +1,5 @@
-from crewai import Agent, Task, Crew, Process, Tool
+from crewai import Agent, Task, Crew, Process
+from crewai.tools import BaseTool
 from crewai_tools import JSONSearchTool
 from langchain_openai import OpenAI
 import os
@@ -17,7 +18,7 @@ NODE_API_BASE_URL = os.getenv("NODE_API_BASE_URL", "http://localhost:3001")
 INTERNAL_API_SECRET = os.getenv("INTERNAL_API_SECRET", "your-shared-secret")
 
 # --- Tools ---
-class LoginTool(Tool):
+class LoginTool(BaseTool):
     name: str = "Login Tool"
     description: str = "Authenticates a user by their email and returns a session token."
 
@@ -35,7 +36,7 @@ class LoginTool(Tool):
         except Exception as e:
             return {"success": False, "message": f"An unexpected error occurred during login: {str(e)}"}
 
-class AddContactTool(Tool):
+class AddContactTool(BaseTool):
     name: str = "Add Contact Tool"
     description: str = "Adds a new contact to the user's address book."
 
@@ -59,7 +60,7 @@ class AddContactTool(Tool):
         except Exception as e:
             return {"success": False, "message": "Failed to add contact."}
 
-class ListContactsTool(Tool):
+class ListContactsTool(BaseTool):
     name: str = "List Contacts Tool"
     description: str = "Lists all contacts for the authenticated user."
 
@@ -78,7 +79,7 @@ class ListContactsTool(Tool):
         except Exception as e:
             return {"success": False, "message": "Failed to list contacts."}
 
-class GetAccountBalanceTool(Tool):
+class GetAccountBalanceTool(BaseTool):
     name: str = "Get Account Balance Tool"
     description: str = "Gets the account balance for the authenticated user."
 
@@ -97,7 +98,7 @@ class GetAccountBalanceTool(Tool):
         except Exception as e:
             return {"success": False, "message": "Failed to get account balance."}
 
-class ExecutePaymentTool(Tool):
+class ExecutePaymentTool(BaseTool):
     name: str = "Execute Payment Tool"
     description: str = "Executes a payment transaction."
 
@@ -460,7 +461,7 @@ You must only respond with a JSON object with the following structure:
             verbose=False
         )
         
-        task_type = analysis_crew.kickoff().strip()
+        task_type = str(analysis_crew.kickoff()).strip()
         
         # Verificar autenticação para tarefas protegidas
         if task_type not in public_tasks:
