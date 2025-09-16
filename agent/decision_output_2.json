@@ -1,10 +1,7 @@
 {
-  "message": "Enviando um pagamento de 1000 BRL para Alice com uma nota dizendo 'Pagamento do jantar'.",
-  "task": "execute_payment",
+  "message": "Buscando informações sobre a senha fornecida.",
+  "task": "clarification_needed",
   "params": {
-    "destination": "Alice",
-    "amount": "1000",
-    "assetCode": "BRL",
-    "memo": "Dinner payment"
+    "message": "A senha 'senha_hahahaha' não parece ser um comando válido. Por favor, forneça um comando ou ação específica."
   }
 }

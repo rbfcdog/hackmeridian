@@ -1,22 +1,26 @@
-{
-  "contacts": [
-    {
-      "name": "Adobe Inc.",
-      "type": "company",
-      "public_key": "adobe_public_key_here",
-      "wallet_address": "0x...",
-      "payment_methods": ["crypto", "bank_transfer"],
-      "contact_person": "John Doe",
-      "email": "payments@adobe.com"
-    },
-    {
-      "name": "Microsoft Corporation",
-      "type": "company", 
-      "public_key": "microsoft_public_key_here",
-      "wallet_address": "0x...",
-      "payment_methods": ["crypto"],
-      "contact_person": "Jane Smith",
-      "email": "finance@microsoft.com"
-    }
-  ]
-}
+[
+  {
+    "id": "c62f1ddc-28b2-4051-8c87-7fb9767205ff",
+    "owner_id": "da19f7ce-056d-4f47-af04-be20425b8f0f",
+    "contact_name": "Amigo Jo\u00e3o",
+    "stellar_public_key": "GAMKOE5Q6BQX74HOG5V5I54LSLUPCCOHMTU4CATXNH4UOPWI3MPSTDAB",
+    "created_at": "2025-09-15T22:26:46.60199+00:00",
+    "updated_at": "2025-09-15T22:26:46.60199+00:00"
+  },
+  {
+    "id": "fb569a2f-3ccb-4992-9db0-1180c831b21b",
+    "owner_id": "da19f7ce-056d-4f47-af04-be20425b8f0f",
+    "contact_name": "C\ufffdssio",
+    "stellar_public_key": "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF",
+    "created_at": "2025-09-16T08:05:11.835047+00:00",
+    "updated_at": "2025-09-16T08:05:11.835047+00:00"
+  },
+  {
+    "id": "78f52ed1-0108-4bcb-aaff-e2c9e613ae09",
+    "owner_id": "da19f7ce-056d-4f47-af04-be20425b8f0f",
+    "contact_name": "Maria",
+    "stellar_public_key": "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF",
+    "created_at": "2025-09-16T07:58:50.692464+00:00",
+    "updated_at": "2025-09-16T07:58:50.692464+00:00"
+  }
+]

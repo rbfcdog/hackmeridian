@@ -1,10 +1,12 @@
 from crewai import Agent, Task, Crew, Process
 from crewai.tools import BaseTool
+from crewai_tools import JSONSearchTool
 from langchain_openai import OpenAI
 import requests
 import os
 import json 
 from dotenv import load_dotenv
+
 
 # Gerenciador de sessão em memória
 # A chave é o ID do usuário da plataforma de chat (ex: 'whatsapp:+5521999999999')
@@ -59,7 +61,7 @@ class ExecutePaymentTool(BaseTool):
     name: str = "Execute Payment Tool"
     description: str = "Executes a payment transaction."
 
-    def _run(self, session_token: str, destination: str, amount: str, assetCode: str, memo: str = "") -> dict:
+    def _run(self, session_token: str, destination: str, amount: str, assetCode: str, memo: str = "", secretKey: str = "") -> dict:
         try:
             headers = {
                 "Content-Type": "application/json",
@@ -106,19 +108,57 @@ class SimpleAgent:
         self.list_contacts_tool = ListContactsTool()
         self.execute_payment_tool = ExecutePaymentTool()
 
-    def run(self, query: str, output_file: str = "decision_output.json", session_id: str = "default_session"):
+        self.transaction_register = {}
+        self.secret_key_mode = False
+
+
+    def run(self, query: dict, output_file: str = "decision_output.json", session_id: str = "default_session"):
+
+        contact_search_tool = JSONSearchTool(
+            name="Contacts JSON Search Tool",
+            description="Searches a local JSON file for contact information.",
+            json_path="contacts.json"
+        )
+
+        issuers_search_tool = JSONSearchTool(
+            name="Issuers Search Tool",
+            description="Searches a local JSON file for issuers code",
+            json_path="issuers.json"
+        )
+
         agent = Agent(
             role="Simple Task Mapper",
             goal="Convert a user query into a structured JSON TaskResponse object.",
             backstory="You only produce structured JSON for backend execution.",
             llm=self.llm,
-            verbose=True
+            verbose=True,
+            tools=[contact_search_tool, issuers_search_tool]
         )
+
+
+        if self.secret_key_mode:
+            print("SECRETTTTTTTTTTTTTTTT")
+            secret_key = query["query"]
+            task_data = self.transaction_register
+            print(task_data)
+            session_token = SESSION_STORAGE.get(session_id).get("sessionToken")
+            payment_result = self.execute_payment_tool._run(
+                session_token=session_token,
+                destination=task_data["params"]["destination"],
+                amount=task_data["params"]["amount"],
+                assetCode=task_data["params"]["issuer"],
+                memo=task_data["params"]["memo"],
+                secretKey=secret_key
+            )
+            context = json.dumps(payment_result)
+
+            return context
+
 
         description = f"""
         Convert the following user query into a valid JSON object.
 
-        User Query: "{query}"
+        User Query: "{query["query"]}"
 
         ### JSON Schema (must follow exactly):
         {{
@@ -137,21 +177,26 @@ class SimpleAgent:
         - lookup_contact: {{ "contactName": "" }}
         - get_account_balance: {{}}
         - get_operations_history: {{}}
-        - execute_payment: {{ "destination": "", "amount": "", "assetCode": "", "memo": "", secretKey: "" }}
+        - execute_payment: {{ "destination": "", "amount": "", "issuer": "", "memo": ""}}
         - execute_path_payment: {{ "destination": "", "destAsset": "", "destAmount": "", "sourceAsset": "" }}
         - initiate_pix_deposit: {{ "amount": "", "assetCode": "" }}
         - clarification_needed: {{ "message": "" }}
+
+        For destination paramters, check the contacts list to associate the respective name to the public key
+        For the asset, need to get the code present in issuers document
 
         ### Rules:
         - Respond ONLY with the JSON object.
         - Never include explanations, markdown, or text outside JSON.
         """
 
+
         task = Task(
             description=description,
             agent=agent,
-            expected_output="A single valid JSON object.",
-            output_file=output_file
+            expected_output="A single valid JSON object, no quotes, only the raw json",
+            output_file=output_file,
+            tools=[contact_search_tool, issuers_search_tool]
         )
 
         crew = Crew(
@@ -183,9 +228,8 @@ class SimpleAgent:
                 }
         
         context = ""
-        print(task_type)
         if task_type == "login":
-            return self._handle_login(query, session_id)
+            return self._handle_login(query["query"], session_id)
 
         elif task_type == "list_contacts":
             session_token = session_data.get("sessionToken")
@@ -194,16 +238,17 @@ class SimpleAgent:
 
         if task_type == "execute_payment":
             print("enter_pay")
-            session_token = session_data.get("sessionToken")
-            payment_result = self.execute_payment_tool._run(
-                session_token=session_token,
-                secret_key=task_data["params"]["secretKey"],
-                destination=task_data["params"]["destination"],
-                amount=task_data["params"]["amount"],
-                assetCode=task_data["params"]["assetCode"],
-                memo=task_data["params"]["memo"]
-            )
-            context = json.dumps(payment_result)
+            session_token = session_data.get("sessionToken")    
+
+            self.transaction_register = task_data 
+            self.secret_key_mode = True
+
+            return {
+                "message": "Por favor, forneça sua chave secreta para autorizar o pagamento.",
+                "task": "clarification_needed",
+                "params": {"requires_secret_key": True}
+            }
+        
 
         return self.final_agent(task_type="list_contacts", context=context)
 
@@ -271,6 +316,11 @@ class SimpleAgent:
                 "userId": login_result.get("userId"),
                 "email": email
             }
+
+            session_token = SESSION_STORAGE[session_id].get("sessionToken")
+            contacts = self.list_contacts_tool._run(session_token=session_token)
+            json.dump(contacts["contacts"], open(f"contacts.json", "w"), indent=2)
+
             return {
                 "message": f"Login realizado com sucesso! Bem-vindo, {email}",
                 "task": "login",
@@ -289,10 +339,16 @@ if __name__ == "__main__":
     
     queries = [
         "quero logar na conta usuario@exemplo.com",
-        "quero saber a lista de contatos",
-        "I want to send payment, 1000 BRL to Alice with a note saying 'Dinner payment'.",
+        "I want to send payment, 1000 BRL to Amigo Jo with a note saying 'Dinner payment'.",
+        "senha_hahahaha"
         # "What's my current account balance?",
         # "Add Bob to my contacts with public key GABCD1234EFGH5678"
     ]
+
+
     for i, query in enumerate(queries):
-        sa.run(query, output_file=f"decision_output_{i}.json")
+        payload = {
+            "query": query,
+        }
+
+        response = sa.run(payload, output_file=f"decision_output_{i}.json")

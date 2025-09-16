@@ -1,5 +1,10 @@
 {
-  "message": "Solicitação para listar os contatos do usuário.",
-  "task": "list_contacts",
-  "params": {}
+  "message": "Enviando pagamento de 1000 BRL para Amigo Jo com a nota 'Pagamento do jantar'.",
+  "task": "execute_payment",
+  "params": {
+    "destination": "GAMKOE5Q6BQX74HOG5V5I54LSLUPCCOHMTU4CATXNH4UOPWI3MPSTDAB",
+    "amount": "1000",
+    "issuer": "GDEWJ42S6ALN463I3BFQ6X24Z2I323N2SA5FLB5FNM5M5ZZO62B7K3Y4",
+    "memo": "Pagamento do jantar"
+  }
 }
