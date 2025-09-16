@@ -11,10 +11,31 @@ export const validate = (schema: ZodSchema) =>
       });
       return next();
     } catch (error: any) {
-      const formattedErrors = error.errors.map((err: any) => ({
-        path: err.path.join('.'),
-        message: err.message,
-      }));
+      console.log('Validation Error:', error);
+      
+      let formattedErrors;
+      
+      if (error.errors && Array.isArray(error.errors)) {
+        formattedErrors = error.errors.map((err: any) => ({
+          path: err.path.join('.'),
+          message: err.message,
+          received: err.received,
+          expected: err.expected
+        }));
+      } else if (Array.isArray(error)) {
+        formattedErrors = error.map((err: any) => ({
+          path: err.path.join('.'),
+          message: err.message,
+          received: err.received,
+          expected: err.expected
+        }));
+      } else {
+        formattedErrors = [{
+          path: 'validation',
+          message: 'Validation failed. Check request format.',
+          details: error.message || 'Unknown validation error'
+        }];
+      }
 
       return res.status(400).json({
         success: false,

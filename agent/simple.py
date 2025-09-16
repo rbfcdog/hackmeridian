@@ -118,6 +118,21 @@ class ExecutePaymentTool(BaseTool):
                 "Authorization": f"Bearer {session_token}",
                 "x-internal-secret": INTERNAL_API_SECRET
             }
+            
+            # ✅ Buscar userId da sessão ativa
+            session_data = None
+            for session_id, data in SESSION_STORAGE.items():
+                if data.get("sessionToken") == session_token:
+                    session_data = data
+                    break
+            
+            if not session_data:
+                return {"success": False, "message": "Session not found or expired"}
+            
+            user_id = session_data.get("userId")
+            if not user_id:
+                return {"success": False, "message": "User ID not found in session"}
+                
             payload = {
                 "sourcePublicKey": USER_INFO["userPublicKey"],
                 "destination": destination,
@@ -139,10 +154,12 @@ class ExecutePaymentTool(BaseTool):
 
             sign_payload = {
                 "secretKey": secretKey,
-                "unsignedXdr": response["xdr"],
+                "unsignedXdr": response.json()["xdr"],  # ✅ Corrigir acesso ao JSON
                 "operationData": {
-                    "sourcePublicKey": USER_INFO["userPublicKey"],
-                    "destination": destination,
+                    "user_id": user_id,                           # ✅ Usar userId da sessão
+                    "operation_type": "PAYMENT",                  # ✅ Campo correto
+                    "source_account": USER_INFO["userPublicKey"], # ✅ Campo correto
+                    "destination_account": destination,           # ✅ Campo correto  
                     "amount": amount,
                     "asset_code": assetCode,
                     "memo": memo
@@ -429,6 +446,10 @@ class SimpleAgent:
                 "userId": login_result.get("userId"),
                 "email": email
             }
+            
+            # ✅ Atualizar USER_INFO com userId para operações que dependem dele
+            USER_INFO["userId"] = login_result.get("userId")
+            USER_INFO["email"] = email
 
             session_token = SESSION_STORAGE[session_id].get("sessionToken")
             contacts = self.list_contacts_tool._run(session_token=session_token)
