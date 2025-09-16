@@ -1,14 +1,5 @@
-```
 {
-  "message": "Preparando o envio de 10 BRLC para a chave NEAIIPEVBOFEAPFAEIPBAEOPF.",
-  "task": "execute_payment",
-  "params": {
-    "receiver_key": "NEAIIPEVBOFEAPFAEIPBAEOPF",
-    "amount": "10",
-    "asset_code": "BRLC",
-    "receiver_name": "",
-    "type": "payment",
-    "status": "pending"
-  }
+  "message": "Buscando sua lista de contatos...",
+  "task": "list_contacts",
+  "params": {}
 }
-```
