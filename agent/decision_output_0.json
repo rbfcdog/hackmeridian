@@ -1,10 +1,7 @@
 {
-  "message": "Enviar 50 USD para Alice com uma nota dizendo 'Pagamento do jantar'.",
-  "task": "execute_payment",
+  "message": "Iniciando o processo de login com o email fornecido.",
+  "task": "login",
   "params": {
-    "destination": "Alice",
-    "amount": "50",
-    "assetCode": "USD",
-    "memo": "Pagamento do jantar"
+    "email": "usuario@exemplo.com"
   }
 }

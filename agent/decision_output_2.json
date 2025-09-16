@@ -1,8 +1,10 @@
 {
-  "message": "Adicionando Bob aos meus contatos com a chave pública GABCD1234EFGH5678",
-  "task": "add_contact",
+  "message": "Enviando um pagamento de 1000 BRL para Alice com uma nota dizendo 'Pagamento do jantar'.",
+  "task": "execute_payment",
   "params": {
-    "contactName": "Bob",
-    "publicKey": "GABCD1234EFGH5678"
+    "destination": "Alice",
+    "amount": "1000",
+    "assetCode": "BRL",
+    "memo": "Dinner payment"
   }
 }
