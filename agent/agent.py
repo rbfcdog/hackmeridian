@@ -190,394 +190,171 @@ class StellarConverseCrew:
 
 
     def main_agent(self) -> Agent:
-        """Single agent that decides which task to execute"""
+        """Single agent that decides which task to execute using Pydantic output"""
+        master_prompt = """
+# ROLE AND GOAL
+You are 'Converse', a highly specialized AI financial assistant for Stellar blockchain operations. You are an expert at understanding user intent and translating natural language requests into precise, structured commands for financial operations.
+
+# CORE MISSION
+Your primary function is to analyze user queries and generate TaskResponse objects that precisely capture the user's intent with all necessary parameters for execution.
+
+# AVAILABLE OPERATIONS
+You can process these types of requests:
+
+## Authentication & User Management
+- "login": User authentication via email
+- "onboard_user": Account creation with user details
+
+## Contact Management  
+- "add_contact": Add new contact with name and Stellar public key
+- "list_contacts": Retrieve all saved contacts
+- "lookup_contact": Find specific contact by name
+
+## Account Operations
+- "get_account_balance": Check account balance and asset holdings
+- "get_operations_history": Retrieve transaction history
+
+## Payment Operations
+- "execute_payment": Direct payment to destination
+- "execute_path_payment": Cross-asset payment with conversion
+- "initiate_pix_deposit": PIX deposit to acquire BRLC
+
+## Helper Operations
+- "clarification_needed": Request more information when intent is unclear
+
+# TASK PROCESSING METHODOLOGY
+
+## Step 1: Intent Analysis
+- Identify the core operation the user wants to perform
+- Extract all mentioned parameters (amounts, recipients, assets, etc.)
+- Determine if the request is complete or needs clarification
+
+## Step 2: Parameter Extraction
+- **Recipients**: Extract public keys (starting with 'G') or contact names
+- **Amounts**: Parse numeric values with proper decimals
+- **Assets**: Identify asset codes (XLM, USDC, BRLC, etc.)
+- **Additional Data**: Memos, emails, names, etc.
+
+## Step 3: Validation & Response
+- Ensure all required parameters are present
+- Generate appropriate user-friendly message in Portuguese
+- Structure response according to TaskResponse schema
+
+# RESPONSE EXAMPLES
+
+## Authentication
+User: "fazer login com usuario@email.com"
+→ task: "login", params: {"email": "usuario@email.com"}
+
+## Contact Operations
+User: "adicionar João com chave GXXXXX..."
+→ task: "add_contact", params: {"contactName": "João", "publicKey": "GXXXXX..."}
+
+User: "quem eu tenho nos contatos?"
+→ task: "list_contacts", params: {}
+
+## Financial Operations
+User: "qual meu saldo?"
+→ task: "get_account_balance", params: {}
+
+User: "enviar 100 XLM para Maria"
+→ task: "execute_payment", params: {"destination": "[Maria's key from contacts]", "amount": "100", "assetCode": "XLM"}
+
+User: "depositar 500 reais via PIX"
+→ task: "initiate_pix_deposit", params: {"amount": "500", "assetCode": "BRLC"}
+
+# CRITICAL RULES
+1. Always respond with complete TaskResponse structure
+2. Use Portuguese for user-facing messages
+3. Extract exact parameters - never hallucinate data
+4. Request clarification when information is insufficient
+5. Validate all extracted data before responding
+
+        """
+        
         return Agent(
             role="Stellar Assistant",
-            goal="Understand the user's query and current context, then generate a precise JSON object to trigger the correct backend task.",
-            backstory="""
-            You are an expert AI assistant named Stellar Assistant. Your sole purpose is to translate a user's request into a structured JSON object that a backend system can process. You operate as a WhatsApp bot helping users with their Stellar account.
-
-            **Core Capabilities:**
-            - Fetch user information (profile, balance, transaction history, account status).
-            - Initiate actions, specifically sending payments.
-
-            **Critical Rule: Your output MUST be a single, valid JSON object and nothing else.**
-            - Do not add explanations or any text before or after the JSON.
-            - The JSON must strictly adhere to the `TaskResponse` schema.
-
-            **Available Tasks & Parameters:**
-            1.  "add_contact": 'params: { "contactName": "", "publicKey": "" }'
-            2.  "list_contacts": 'params: {}'
-            3.  "lookup_contact": 'params: { "contactName": "" }'
-            4.  "get_account_balance": 'params: {}'
-            5.  "get_operations_history": 'params: {}'
-            6.  "execute_payment": 'params: { "destination": "", "amount": "", "assetCode": "", "memo": "" }'
-            7.  "clarification_needed": 'params: { "message": "" }'
-            8.  "execute_path_payment": 'params: { "destination": "", "destAsset": "", "destAmount": "", "sourceAsset": "" }'
-            9.  "initiate_pix_deposit": 'params: { "amount": "", "assetCode": "" }'
-            10. "onboard_user": 'params: { "name": "", "email": "" }'
-            11. "login": 'params: { "email": "" }'
-
-            `### OUTPUT FORMAT ---
-You must only respond with a JSON object with the following structure:
-{
-  "message": "A user-facing message in Portuguese explaining the action being taken or asking for more information.",
-  "task": "The specific, machine-readable task identifier.",
-  "params": {
-    "key": "value"
-    // All extracted parameters for the task go here.
-  }
-}
-
----
-### EXAMPLES ---
-
-# --- Onboarding e Gerenciamento de Usuário ---
-
-* User Query: "quero criar uma conta nova"
-* Your Output:
-  ```json
-  {
-    "message": "Entendido. Para criar uma conta, por favor, me informe seu e-mail no comando. Exemplo: 'criar conta com o email meuemail@exemplo.com'",
-    "task": "clarification_needed",
-    "params": {}
-  }`
-
-- User Query: "criar conta com o email dev@hackathon.com"
-- Your Output:
-    
-    `{
-      "message": "Perfeito. Vou criar sua conta Stellar agora...",
-      "task": "onboard_user",
-      "params": {
-        "email": "dev@hackathon.com"
-      }
-    }`
-
-# --- Autenticação ---
-
-- User Query: "fazer login com dev@hackathon.com"
-- Your Output:
-    
-    `{
-      "message": "Fazendo login com dev@hackathon.com...",
-      "task": "login",
-      "params": {
-        "email": "dev@hackathon.com"
-      }
-    }`
-
-- User Query: "login usando email@exemplo.com"
-- Your Output:
-    
-    `{
-      "message": "Autenticando com email@exemplo.com...",
-      "task": "login",
-      "params": {
-        "email": "email@exemplo.com"
-      }
-    }`
-            # Gerenciamento de Contatos ---
-
-- User Query: "adicionar a Maria na minha lista de contatos, a chave dela é GABCD...XYZ"
-- Your Output:
-    
-    `{
-      "message": "Adicionando Maria (GABCD...XYZ) aos seus contatos.",
-      "task": "add_contact",
-      "params": {
-        "contactName": "Maria",
-        "publicKey": "GABCD...XYZ"
-      }
-    }`
-    
-- User Query: "quem eu tenho salvo nos meus contatos?"
-- Your Output:
-    
-    `{
-      "message": "Buscando sua lista de contatos...",
-      "task": "list_contacts",
-      "params": {}
-    }`
-    
-- User Query: "qual a chave do joão"
-- Your Output:
-    s
-    `{
-      "message": "Verificando a chave pública de João...",
-      "task": "lookup_contact",
-      "params": {
-          "contactName": "João"
-      }
-    }`
-    
-
-# -- Consultas ---
-
-- User Query: "qual meu saldo?" or "ver minha carteira"
-- Your Output:JSON
-    
-    `{
-      "message": "Consultando os saldos da sua carteira...",
-      "task": "get_account_balance",
-      "params": {}
-    }`
-    
-- User Query: "mostra minhas últimas operações"
-- Your Output:JSON
-    
-    `{
-      "message": "Buscando seu histórico de operações...",
-      "task": "get_operations_history",
-      "params": {}
-    }`
-    
-
-# -- Pagamentos Simples (Casos Variados) ---
-
-- User Query: "enviar 150 BRLC para GDEY...ABCD"
-- Your Output:
-    
-    `{
-      "message": "Preparando o envio de 150 BRLC...",
-      "task": "execute_payment",
-      "params": {
-        "destination": "GDEY...ABCD",
-        "amount": "150",
-        "assetCode": "BRLC"
-      }
-    }`
-    
-- User Query: "pague 25.5 XLM para o contato João com o memo 'hackathon'"
-- Your Output (after using the tool to find João's key internally):
-    
-    `{
-      "message": "Preparando o envio de 25.5 XLM para João (GA...XYZ).",
-      "task": "execute_payment",
-      "params": {
-        "destination": "GA...XYZ",
-        "amount": "25.5",
-        "assetCode": "XLM",
-        "memo": "hackathon"
-      }
-    }`
-    
-- User Query: "enviar 50 para a Maria" (Asset ambiguity)
-- Your Output:
-    
-    `{
-      "message": "Não consegui identificar qual ativo você quer enviar. Por favor, tente novamente de forma mais específica, por exemplo: 'enviar 50 XLM para a Maria'.",
-      "task": "clarification_needed",
-      "params": {}
-    }`
-    
-
-# -- Path Payments (A Funcionalidade Chave) ---
-
-- User Query: "quero que a Maria receba exatamente 200 USDC. me diga quanto custa em BRLC e pode enviar"
-- Your Output (after using the tool to find Maria's key internally):
-    
-    `{
-      "message": "Calculando o custo para que Maria (GB...ABC) receba 200 USDC e preparando a transação...",
-      "task": "execute_path_payment",
-      "params": {
-        "destination": "GB...ABC",
-        "destAsset": "USDC",
-        "destAmount": "200",
-        "sourceAsset": "BRLC"
-      }
-    }`
-    
-- User Query: "enviar 1000 reais para o meu fornecedor na Europa e quero que ele receba em euro"
-- Your Output:
-    
-    `{
-      "message": "Para fazer um envio internacional complexo, preciso que o comando inclua o contato ou a chave pública do destinatário e o código exato do ativo de destino. Exemplo: 'enviar 1000 BRLC para o contato Fornecedor Europa para que ele receba em EURT'",
-      "task": "clarification_needed",
-      "params": {}
-    }`
-    
-
-# -- On-Ramp (PIX) ---
-
-- User Query: "quero depositar 500 reais na minha conta com pix"
-- Your Output:
-    
-    `{
-      "message": "Iniciando um depósito de R$ 500.00 via PIX...",
-      "task": "initiate_pix_deposit",
-      "params": {
-        "assetCode": "BRLC",
-        "amount": "500.00"
-      }
-    }`
-                
-            """,
+            goal="Analisar a query do usuário e traduzi-la em um comando TaskResponse estruturado.",
+            backstory=master_prompt,
             tools=[JSONSearchTool(json_path="contacts.json")],
             llm=self.llm,
             verbose=True,
             max_iter=3
         )
 
-    def process_query(self, query: str, session_id: str = "default_session"):
+    def process_query(self, query: str, session_id: str = "default_session") -> TaskResponse:
         """
-        Main entry point - the agent uses the query and session ID
-        to decide which backend task to run with authentication.
+        Main entry point - processes user query and returns structured TaskResponse
         """
         agent = self.main_agent()
         
         # Verificar se o usuário está autenticado (exceto para tarefas públicas)
-        public_tasks = ["login", "onboard_user"]
+        public_tasks = ["login", "onboard_user", "clarification_needed"]
         
-        # Primeiro, vamos determinar qual tarefa o usuário quer executar
-        # usando um agente temporário para análise
-        analysis_task_description = f"""
-            Analyze the user's query to determine which task they want to execute.
-            
-            **User's Query:** "{query}"
-            
-            Determine the task type from this query and return ONLY the task name (one word):
-            - login
-            - onboard_user
-            - add_contact
-            - list_contacts
-            - lookup_contact
-            - get_account_balance
-            - get_operations_history
-            - execute_payment
-            - execute_path_payment
-            - initiate_pix_deposit
-            - clarification_needed
-            
-            Return only the task name, nothing else.
-            """
-        
-        analysis_task = Task(
-            description=analysis_task_description,
-            agent=agent,
-            expected_output="Single task name",
-        )
-        
-        analysis_crew = Crew(
-            agents=[agent],
-            tasks=[analysis_task],
-            process=Process.sequential,
-            verbose=False
-        )
-        
-        task_type = str(analysis_crew.kickoff()).strip()
+        # Se for uma query de login, tratar diretamente
+        if "login" in query.lower() and "@" in query:
+            return self._handle_login(query, session_id)
         
         # Verificar autenticação para tarefas protegidas
-        if task_type not in public_tasks:
-            session_data = SESSION_STORAGE.get(session_id)
-            if not session_data or not session_data.get("sessionToken"):
-                return {
-                    "message": "Você precisa fazer login primeiro. Por favor, envie seu email para autenticar. Exemplo: 'fazer login com email@exemplo.com'",
-                    "task": "clarification_needed",
-                    "params": {"requires_login": True}
-                }
+        session_data = SESSION_STORAGE.get(session_id)
+        session_token = session_data.get("sessionToken") if session_data else None
         
-        context = ""
-        if task_type == "login":
-            return self._handle_login(query, session_id)
-        elif task_type == "list_contacts":
-            session_token = SESSION_STORAGE.get(session_id, {}).get("sessionToken")
-            context = list_contacts_tool._run(session_token=session_token)
-            import json 
-            context = json.dumps(context)
-
-
-
-        # Para outras tarefas, continuar com o fluxo normal
-        session_token = SESSION_STORAGE.get(session_id, {}).get("sessionToken", "")
+        # Preparar contexto de autenticação
+        auth_context = ""
+        if session_token:
+            auth_context = f"User is authenticated with session token. Session ID: {session_id}"
+        else:
+            auth_context = "User is NOT authenticated. Only public operations (login, onboard_user) are allowed."
         
-        task_description = f"""
-            You are deciding which backend task should be called.
-            Analyze the user's query to determine the correct backend task and its parameters.
-
-            **User's Query:** "{query}"
-            **Session ID:** "{session_id}"
-            **Context** {context}
-            **Authentication Token Available:** {"Yes" if session_token else "No"}
-
-            **Your Goal:**
-            Generate a single, valid JSON object that matches the `TaskResponse` Pydantic model.
-
-            **Available Tasks & Parameters:**
-            1.  "add_contact": 'params: {{ "contactName": "", "publicKey": "" }}'
-            2.  "list_contacts": 'params: {{}}'
-            3.  "lookup_contact": 'params: {{ "contactName": "" }}'
-            4.  "get_account_balance": 'params: {{}}'
-            5.  "get_operations_history": 'params: {{}}'
-            6.  "execute_payment": 'params: {{ "destination": "", "amount": "", "assetCode": "", "memo": "" }}'
-            7.  "clarification_needed": 'params: {{ "message": "" }}'
-            8.  "execute_path_payment": 'params: {{ "destination": "", "destAsset": "", "destAmount": "", "sourceAsset": "" }}'
-            9.  "initiate_pix_deposit": 'params: {{ "amount": "", "assetCode": "" }}'
-            10. "onboard_user": 'params: {{ "name": "", "email": "" }}'
-            11. "login": 'params: {{ "email": "" }}'
-
-            **Instructions & Logic:**
-            1. Read the user's query to understand their intent.
-            2. If the task is "payment":
-               a. Extract the `amount` and `asset_code` (e.g., XLM, USDC). If no asset is specified, assume XLM.
-               b. Identify the recipient. If it's a name (e.g., "Bob"), use the `JSONSearchTool` on `contacts.json` to find their public key. If it's a public key (starts with 'G'), use it directly.
-               c. Construct the `params` dictionary with all required fields.
-            3. For all other tasks, construct appropriate parameters.
-            4. If you cannot fulfill the request (e.g., contact not found), follow the error handling rule.
-            5. Formulate a user-friendly `message` that confirms the action or explains the problem.
-
-            **Strict Rules:**
-            - Do not return extra text, only the raw JSON object.
-            - Ensure the JSON is always valid and follows the schema.
-            - Never hallucinate a public key.
-            """
-
-        decision_task = Task(
-            description=task_description,
+        # Criar tarefa principal com output Pydantic
+        main_task = Task(
+            description=f"""
+            Processe a query do usuário: '{query}'
+            
+            Contexto de autenticação: {auth_context}
+            
+            Analise a query seguindo sua metodologia interna e formate a decisão final como um objeto TaskResponse válido.
+            
+            Se o usuário não estiver autenticado e tentar executar uma operação protegida, 
+            retorne uma tarefa 'clarification_needed' solicitando login.
+            """,
+            expected_output="Um objeto TaskResponse estruturado e validado",
             agent=agent,
-            expected_output="A single valid JSON object that conforms to the model.",
-            output_file="decision_output.json",
-            tools=[JSONSearchTool(json_path="contacts.json"), list_contacts_tool]
+            output_pydantic=TaskResponse  # MUDANÇA PRINCIPAL: Output direto para Pydantic
         )
-
+        
+        # Executar crew com a nova estrutura
         crew = Crew(
             agents=[agent],
-            tasks=[decision_task],
+            tasks=[main_task],
             process=Process.sequential,
             verbose=True
         )
-
-        result = crew.kickoff()
-
-        print(result)
         
-        # Se o resultado for uma tarefa que requer execução de ferramenta, executar aqui
-        try:
-            import json 
-            with open("decision_output.json", "r") as f:
-                task_data = json.load(f)
-
-            print("-"*50)
-            print(task_data)
-            print("-"*50)
-                
-            task_type = task_data.get("task")
-            print(task_type)
-            session_token = SESSION_STORAGE.get(session_id, {}).get("sessionToken")
-            
-            # Executar ferramentas protegidas se houver token
-            if session_token and task_type in ["add_contact", "list_contacts", "get_account_balance", "execute_payment"]:
-                print("chegou task_type")
-                tool_result = self._execute_protected_task(task_type, task_data.get("params", {}), session_token)
-                if tool_result:
-                    task_data["tool_result"] = tool_result
-
-            print(task_data)
-                        
-            return task_data
-        except:
-            # Se não conseguir parsear, retornar o resultado original
-            return result
+        # O resultado agora é um objeto TaskResponse, não uma string!
+        inputs = {"query": query}
+        structured_result: TaskResponse = crew.kickoff(inputs=inputs)
+        
+        # Verificar se é uma operação protegida sem autenticação
+        if (structured_result.task not in public_tasks and not session_token):
+            return TaskResponse(
+                message="Você precisa fazer login primeiro. Por favor, envie seu email para autenticar. Exemplo: 'fazer login com email@exemplo.com'",
+                task="clarification_needed",
+                params={"requires_login": True}
+            )
+        
+        # Executar ferramenta real se necessário
+        if session_token and structured_result.task in ["add_contact", "list_contacts", "get_account_balance", "execute_payment"]:
+            tool_result = self._execute_protected_task(
+                structured_result.task, 
+                structured_result.params, 
+                session_token
+            )
+            if tool_result:
+                # Adicionar resultado da ferramenta como parâmetro extra
+                structured_result.params["tool_result"] = tool_result
+        
+        return structured_result
     
     def _execute_protected_task(self, task_type: str, params: dict, session_token: str):
         print("chegou protected task")
@@ -606,7 +383,7 @@ You must only respond with a JSON object with the following structure:
             return {"success": False, "message": f"Tool execution failed: {str(e)}"}
         return None
     
-    def _handle_login(self, query: str, session_id: str):
+    def _handle_login(self, query: str, session_id: str) -> TaskResponse:
         """Handle login task specifically"""
         # Extrair email da query
         import re
@@ -614,57 +391,74 @@ You must only respond with a JSON object with the following structure:
         emails = re.findall(email_pattern, query)
         
         if not emails:
-            return {
-                "message": "Por favor, forneça um email válido para fazer login. Exemplo: 'fazer login com email@exemplo.com'",
-                "task": "clarification_needed",
-                "params": {}
-            }
+            return TaskResponse(
+                message="Por favor, forneça um email válido para fazer login. Exemplo: 'fazer login com email@exemplo.com'",
+                task="clarification_needed",
+                params={}
+            )
         
         email = emails[0]
-
-        print(email)
         
         # Executar login
         login_result = login_tool._run(email)
         
         if login_result.get("success"):
-            print("SUCCESSSSSSSS")
             # Salvar token na sessão
             SESSION_STORAGE[session_id] = {
                 "sessionToken": login_result.get("sessionToken"),
                 "userId": login_result.get("userId"),
                 "email": email
             }
-            return {
-                "message": f"Login realizado com sucesso! Bem-vindo, {email}",
-                "task": "login",
-                "params": {"email": email, "success": True}
-            }
+            return TaskResponse(
+                message=f"Login realizado com sucesso! Bem-vindo, {email}",
+                task="login",
+                params={"email": email, "success": True, "tool_result": login_result}
+            )
         else:
-            return {
-                "message": f"Falha no login: {login_result.get('message')}",
-                "task": "login",
-                "params": {"email": email, "success": False}
-            }
+            return TaskResponse(
+                message=f"Falha no login: {login_result.get('message')}",
+                task="login",
+                params={"email": email, "success": False, "tool_result": login_result}
+            )
 
 
 if __name__ == "__main__":
     crew = StellarConverseCrew()
     
-    print("\nStellar Assistant is ready. Type 'exit' to quit.")
-    print("Note: This is a demo session. In production, session_id would come from WhatsApp user ID.")
+    print("\n🚀 Stellar Assistant is ready with Pydantic output! Type 'exit' to quit.")
+    print("📱 Note: This is a demo session. In production, session_id would come from WhatsApp user ID.")
     
     demo_session_id = "demo_user_session"
 
-    response = crew.process_query("login usuario@exemplo.com", demo_session_id)
-    print(response)
+    # Teste de login
+    print("\n--- Teste de Login ---")
+    response: TaskResponse = crew.process_query("login usuario@exemplo.com", demo_session_id)
+    print(f"Task: {response.task}")
+    print(f"Message: {response.message}")
+    print(f"Params: {response.params}")
 
-    response = crew.process_query("liste todos os contatos", demo_session_id)
-    print(response)
+    # Teste de listagem de contatos
+    print("\n--- Teste de Lista de Contatos ---")
+    response: TaskResponse = crew.process_query("liste todos os contatos", demo_session_id)
+    print(f"Task: {response.task}")
+    print(f"Message: {response.message}")
+    print(f"Params: {response.params}")
 
+    # Loop interativo
+    print("\n--- Modo Interativo ---")
     while True:
         user_input = input("User: ")
         if user_input.lower() in ["exit", "quit"]:
             break
-        response = crew.process_query(user_input, demo_session_id)
-        print("Bot:", response)
+        
+        response: TaskResponse = crew.process_query(user_input, demo_session_id)
+        print(f"Bot Task: {response.task}")
+        print(f"Bot Message: {response.message}")
+        
+        if response.params:
+            print(f"Parameters: {response.params}")
+        
+        if "tool_result" in response.params:
+            print(f"Tool Result: {response.params['tool_result']}")
+        
+        print("-" * 50)
