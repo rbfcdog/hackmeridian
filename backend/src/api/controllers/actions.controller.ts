@@ -5,7 +5,15 @@ import { UserService } from '../services/user.service';
 import { OperationService } from '../services/operation.service';
 import { AuthService } from '../services/auth.service';
 
+// Força o carregamento das declarações de tipo
+/// <reference path="../../types/express.d.ts" />
 
+// Interface local para garantir tipagem
+interface AuthenticatedRequest extends Request {
+  user?: {
+    userId: string;
+  };
+}
 
 export class ActionsController {
   
@@ -106,7 +114,7 @@ export class ActionsController {
     }
   }
 
-  static async addContact(req: Request, res: Response) {
+  static async addContact(req: AuthenticatedRequest, res: Response) {
     try {
       const { contact_name, public_key } = req.body;
       const userId = req.user?.userId;
@@ -134,7 +142,7 @@ export class ActionsController {
     }
   }
 
-  static async lookupContactByName(req: Request, res: Response) {
+  static async lookupContactByName(req: AuthenticatedRequest, res: Response) {
     try {
       const { contact_name } = req.body;
       const userId = req.user?.userId;
@@ -158,7 +166,7 @@ export class ActionsController {
       res.status(500).json({ success: false, message: error.message });
     }
   }
-  static async listContacts(req: Request, res: Response) {
+  static async listContacts(req: AuthenticatedRequest, res: Response) {
     try {
       const userId = req.user?.userId;
 
@@ -209,7 +217,7 @@ export class ActionsController {
     }
   }
 
-  static async executePayment(req: Request, res: Response) {
+  static async executePayment(req: AuthenticatedRequest, res: Response) {
     try {
       const { destination, amount, assetCode, assetIssuer, memoText, secretKey } = req.body;
       const userId = req.user?.userId;
@@ -240,7 +248,7 @@ export class ActionsController {
     }
   }
 
-  static async getOperationHistory(req: Request, res: Response) {
+  static async getOperationHistory(req: AuthenticatedRequest, res: Response) {
     try {
       const userId = req.user?.userId;
 
@@ -283,7 +291,7 @@ export class ActionsController {
     }
   }
 
-  static async executePathPayment(req: Request, res: Response) {
+  static async executePathPayment(req: AuthenticatedRequest, res: Response) {
     try {
       const { destination, destAsset, destAmount, sourceAsset, secretKey } = req.body;
       const userId = req.user?.userId;
