@@ -1,7 +1,5 @@
 import express from 'express';
-import dotenv from 'dotenv';
-
-dotenv.config();
+import actionsRouter from './api/routes/actions.router';
 
 const app = express();
 
@@ -9,25 +7,13 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.get('/health', (req, res) => {
-  res.status(200).json({
-    status: 'OK',
-    timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV || 'development'
-  });
+  res.status(200).json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
-app.get('/api', (req, res) => {
-  res.json({
-    message: 'Meridian Backend API',
-    version: '1.0.0'
-  });
-});
+app.use('/api/actions', actionsRouter);
 
-app.use('*', (req, res) => {
-  res.status(404).json({
-    error: 'Route not found',
-    message: `Cannot ${req.method} ${req.originalUrl}`
-  });
+app.use((req, res) => {
+  res.status(404).json({ error: 'Route not found' });
 });
 
 export default app;

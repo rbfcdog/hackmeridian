@@ -138,20 +138,5 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 
-# Python
-__pycache__/
-*.pyc
-
-# Virtual Environment
-venv/
+# venv
 .venv/
-env/
-.env
-
-# Arquivos de IDE e Editor
-.vscode/
-.idea/
-
-# Arquivos de saída e logs
-*.log
-decision_output.json

@@ -8,16 +8,28 @@
     "start": "next start"
   },
   "dependencies": {
+    "@stellar/stellar-sdk": "^14.1.1",
+    "@supabase/supabase-js": "^2.57.4",
+    "dotenv": "^17.2.2",
+    "express": "^5.1.0",
     "next": "^15.5.3",
     "react": "19.1.0",
     "react-dom": "19.1.0"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
+    "@types/express": "^5.0.3",
+    "@types/node": "^20.19.14",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "nodemon": "^3.1.10",
     "tailwindcss": "^4",
-    "typescript": "^5"
-  }
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.2"
+  },
+  "description": "This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).",
+  "main": "index.js",
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
 }
