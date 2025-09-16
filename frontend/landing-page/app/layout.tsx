@@ -11,6 +11,9 @@ export const metadata: Metadata = {
   description:
     "O primeiro AI Agent que conecta você à blockchain Stellar através de conversas naturais no WhatsApp, Discord e Telegram.",
   generator: "v0.app",
+  icons: {
+    icon: '/stellar-logo.png',
+  },
 }
 
 export default function RootLayout({
