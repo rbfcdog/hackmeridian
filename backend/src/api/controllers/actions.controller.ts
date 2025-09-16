@@ -3,8 +3,8 @@ import { StellarService } from '../services/stellar.service';
 import { UserService } from '../services/user.service';
 import { OperationService } from '../services/operation.service';
 import { AuthService } from '../services/auth.service';
+import { AnchorService } from '../services/anchor.service';
 
-// Interface local para garantir tipagem
 interface AuthenticatedRequest extends Request {
   user?: {
     userId: string;
@@ -252,6 +252,66 @@ export class ActionsController {
 
       res.status(200).json({ 
         ...result 
+      });
+
+    } catch (error: any) {
+      res.status(500).json({ success: false, message: error.message });
+    }
+  }
+
+  static async getAccountBalance(req: Request, res: Response) {
+    try {
+      const { publicKey } = req.body;
+      const balances = await StellarService.getAccountBalance(publicKey);
+      res.status(200).json({ success: true, balances });
+    } catch (error: any) {
+      res.status(500).json({ success: false, message: error.message });
+    }
+  }
+
+  static async initiatePixDeposit(req: AuthenticatedRequest, res: Response) {
+    try {
+      const userId = req.user?.userId;
+      if (!userId) {
+        return res.status(401).json({ success: false, message: 'Unauthorized' });
+      }
+
+      const { publicKey, assetCode, amount } = req.body;
+      
+      const result = await AnchorService.initiatePixDeposit({
+        userId,
+        publicKey,
+        assetCode,
+        amount
+      });
+
+      res.status(200).json({
+        success: true,
+        depositUrl: result.depositUrl,
+        operationId: result.operationId,
+        message: 'PIX deposit initiated successfully'
+      });
+
+    } catch (error: any) {
+      res.status(500).json({ success: false, message: error.message });
+    }
+  }
+
+  static async checkDepositStatus(req: AuthenticatedRequest, res: Response) {
+    try {
+      const userId = req.user?.userId;
+      if (!userId) {
+        return res.status(401).json({ success: false, message: 'Unauthorized' });
+      }
+
+      const { operationId } = req.body;
+      
+      const result = await AnchorService.checkDepositStatus(operationId);
+
+      res.status(200).json({
+        success: true,
+        status: result.status,
+        message: result.message
       });
 
     } catch (error: any) {

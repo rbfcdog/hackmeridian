@@ -44,4 +44,21 @@ export class OperationRepository {
     }
     return data || [];
   }
+
+  static async findById(id: string): Promise<Operation | null> {
+    const { data, error } = await supabase
+      .from('operations')
+      .select('*')
+      .eq('id', id)
+      .single();
+    
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return null; // Record not found
+      }
+      console.error('Supabase error finding operation by id:', error.message);
+      throw new Error('Failed to retrieve operation record.');
+    }
+    return data;
+  }
 }

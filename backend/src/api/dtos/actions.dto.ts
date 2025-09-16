@@ -63,6 +63,12 @@ export const getOperationHistorySchema = z.object({
   body: z.object({}).optional(),
 });
 
+export const getAccountBalanceSchema = z.object({
+  body: z.object({
+    publicKey: z.string().length(56, 'Formato de chave pública Stellar inválido.'),
+  }),
+});
+
 export const buildPathPaymentXdrSchema = z.object({
   body: z.object({
     sourcePublicKey: z.string().min(1, 'Source public key is required').length(56, 'Invalid public key format'),
@@ -92,5 +98,19 @@ export const executePathPaymentSchema = z.object({
       issuer: z.string().length(56, 'Invalid source asset issuer public key format'),
     }),
     secretKey: z.string().min(1, 'Secret key is required'),
+  }),
+});
+
+export const initiatePixDepositSchema = z.object({
+  body: z.object({
+    publicKey: z.string().min(1, 'Public key is required').length(56, 'Invalid public key format'),
+    assetCode: z.string().min(1, 'Asset code is required'),
+    amount: z.string().min(1, 'Amount is required').regex(/^\d+(\.\d+)?$/, 'Amount must be a valid number'),
+  }),
+});
+
+export const checkDepositStatusSchema = z.object({
+  body: z.object({
+    operationId: z.string().min(1, 'Operation ID is required'),
   }),
 });

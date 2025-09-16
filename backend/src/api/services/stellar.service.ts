@@ -288,4 +288,25 @@ export class StellarService {
             };
         }
     }
+
+    static async getAccountBalance(publicKey: string): Promise<any[]> {
+        try {
+            const account = await server.loadAccount(publicKey);
+            
+            const formattedBalances = account.balances.map(balance => ({
+                balance: balance.balance,
+                asset_type: balance.asset_type,
+                asset_code: (balance as any).asset_code,
+                asset_issuer: (balance as any).asset_issuer,
+            }));
+
+            return formattedBalances;
+        } catch (error: any) {
+            if (error.response && error.response.status === 404) {
+                throw new Error(`Conta com a chave pública ${publicKey} não encontrada na rede Stellar.`);
+            }
+            console.error(`Erro ao buscar saldo para a conta ${publicKey}:`, error);
+            throw new Error('Falha ao consultar o saldo na rede Stellar.');
+        }
+    }
 }
