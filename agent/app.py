@@ -23,8 +23,8 @@ class QueryRequest(BaseModel):
     session_id: str
 
 @app.post("/query")
-def query_endpoint(request: QueryRequest):
-    result = crew.process_query(request.query, request.session_id)
+def query_endpoint(request):
+    result = crew.process_query(request["query"], request["session_id"]) # integracao com front
     return {"result": result}
 
 @app.get("/session/{session_id}")

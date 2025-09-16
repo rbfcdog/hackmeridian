@@ -3,4 +3,5 @@ uvicorn[standard]
 requests
 crewai         
 crewai-tools   
+crewai[tools]
 langchain-openai
