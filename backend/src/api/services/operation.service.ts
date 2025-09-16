@@ -1,5 +1,3 @@
-// src/api/services/operation.service.ts
-
 import { supabase } from '../../config/supabase';
 
 export class OperationService {

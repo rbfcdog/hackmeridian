@@ -1,0 +1,88 @@
+import { z } from 'zod';
+
+export const loginSchema = z.object({
+  body: z.object({
+    email: z.string().min(1, 'Email is required').email('Not a valid email'),
+  }),
+});
+
+export const registerUserWithNewWalletSchema = z.object({
+  body: z.object({
+    email: z.string().min(1, 'Email is required').email('Not a valid email'),
+    phone_number: z.string().optional(),
+  }),
+});
+
+export const registerUserWithExistingWalletSchema = z.object({
+  body: z.object({
+    email: z.string().email().optional(),
+    phone_number: z.string().optional(),
+    stellar_public_key: z.string().min(1, 'Stellar public key is required').length(56, 'Invalid public key format'),
+  }).refine(
+    (data) => data.email || data.phone_number,
+    {
+      message: 'Either email or phone_number is required',
+      path: ['email'],
+    }
+  ),
+});
+
+export const registerUserSchema = z.object({
+  body: z.object({
+    email: z.string().email(),
+    phone_number: z.string().optional(),
+  }).refine(
+    (data) => data.email,
+    {
+      message: 'Email is required',
+      path: ['email'],
+    }
+  ),
+});
+
+export const addContactSchema = z.object({
+  body: z.object({
+    contact_name: z.string().min(1, 'Contact name is required'),
+    public_key: z.string().min(1, 'Public key is required').length(56, 'Invalid public key format'),
+  }),
+});
+
+export const lookupContactByNameSchema = z.object({
+  body: z.object({
+    contact_name: z.string().min(1, 'Contact name is required'),
+  }),
+});
+
+export const buildPaymentXdrSchema = z.object({
+  body: z.object({
+    sourcePublicKey: z.string().min(1, 'Source public key is required').length(56, 'Invalid public key format'),
+    destination: z.string().min(1, 'Destination is required').length(56, 'Invalid public key format'),
+    amount: z.string().min(1, 'Amount is required'),
+    assetCode: z.string().optional(),
+    assetIssuer: z.string().length(56, 'Invalid asset issuer public key format').optional(),
+    memoText: z.string().max(28, 'Memo text is too long').optional(),
+  }),
+});
+
+export const executePaymentSchema = z.object({
+  body: z.object({
+    destination: z.string().min(1, 'Destination is required').length(56, 'Invalid public key format'),
+    amount: z.string().min(1, 'Amount is required'),
+    secretKey: z.string().min(1, 'Secret key is required'),
+    assetCode: z.string().optional(),
+    assetIssuer: z.string().length(56, 'Invalid asset issuer public key format').optional(),
+    memoText: z.string().max(28, 'Memo text is too long').optional(),
+  }),
+});
+
+export const listContactsSchema = z.object({
+  body: z.object({}).optional(),
+});
+
+export const getOperationHistorySchema = z.object({
+  body: z.object({}).optional(),
+});
+
+export const createTestAccountSchema = z.object({
+  body: z.object({}).optional(),
+});

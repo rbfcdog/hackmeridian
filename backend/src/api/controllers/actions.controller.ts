@@ -12,14 +12,7 @@ export class ActionsController {
   static async login(req: Request, res: Response) {
     try {
       const { email } = req.body;
-
-      if (!email) {
-        return res.status(400).json({ 
-          success: false, 
-          message: 'email is required' 
-        });
-      }
-
+      
       const result = await AuthService.login(email);
       
       res.status(200).json({ 
@@ -54,13 +47,6 @@ export class ActionsController {
     try {
       const { email, phone_number } = req.body;
 
-      if (!email) {
-        return res.status(400).json({ 
-          success: false, 
-          message: 'email is required' 
-        });
-      }
-
       const { user, secret } = await UserService.registerUserWithNewWallet({ email, phone_number });
       
       res.status(201).json({ 
@@ -81,20 +67,6 @@ export class ActionsController {
   static async registerUserWithExistingWallet(req: Request, res: Response) {
     try {
       const { email, phone_number, stellar_public_key } = req.body;
-
-      if (!stellar_public_key) {
-        return res.status(400).json({ 
-          success: false, 
-          message: 'stellar_public_key is required' 
-        });
-      }
-
-      if (!email && !phone_number) {
-        return res.status(400).json({ 
-          success: false, 
-          message: 'email or phone_number is required' 
-        });
-      }
 
       const { user } = await UserService.registerUserWithExistingWallet({ 
         email, 
@@ -120,13 +92,6 @@ export class ActionsController {
     try {
       const { email, phone_number } = req.body;
 
-      if (!email && !phone_number) {
-        return res.status(400).json({ 
-          success: false, 
-          message: 'email or phone_number is required' 
-        });
-      }
-
       const { user, secret } = await UserService.registerUser({ email, phone_number });
       
       res.status(201).json({ 
@@ -145,13 +110,6 @@ export class ActionsController {
     try {
       const { contact_name, public_key } = req.body;
       const userId = req.user?.userId;
-
-      if (!contact_name || !public_key) {
-        return res.status(400).json({
-          success: false,
-          message: 'contact_name and public_key are required'
-        });
-      }
 
       if (!userId) {
         return res.status(401).json({
@@ -180,13 +138,6 @@ export class ActionsController {
     try {
       const { contact_name } = req.body;
       const userId = req.user?.userId;
-
-      if (!contact_name) {
-        return res.status(400).json({ 
-          success: false, 
-          message: 'contact_name is required' 
-        });
-      }
 
       if (!userId) {
         return res.status(401).json({
@@ -238,13 +189,6 @@ export class ActionsController {
     try {
       const { sourcePublicKey, destination, amount, assetCode, assetIssuer, memoText } = req.body;
 
-      if (!sourcePublicKey || !destination || !amount) {
-        return res.status(400).json({
-          success: false,
-          message: 'sourcePublicKey, destination, and amount are required'
-        });
-      }
-
       const xdr = await StellarService.buildPaymentXdr({
         sourcePublicKey,
         destination,
@@ -269,13 +213,6 @@ export class ActionsController {
     try {
       const { destination, amount, assetCode, assetIssuer, memoText, secretKey } = req.body;
       const userId = req.user?.userId;
-
-      if (!destination || !amount || !secretKey) {
-        return res.status(400).json({
-          success: false,
-          message: 'destination, amount, and secretKey are required'
-        });
-      }
 
       if (!userId) {
         return res.status(401).json({
