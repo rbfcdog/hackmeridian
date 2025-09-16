@@ -1,31 +1,32 @@
-export interface User {
-  id: string;
-  email: string;
-  phone_number?: string;
-  stellar_public_key: string;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface Contact {
-  id: string;
-  owner_id: string;
-  contact_name: string;
-  stellar_public_key: string;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface Operation {
-  id: string;
-  user_id: string;
-  type: string;
-  status: string;
-  amount?: number;
+export interface TransactionRecord {
+  id?: string;
+  transaction_hash: string;
+  source_account: string;
+  destination_account?: string;
+  operation_type: string;
+  amount?: string;
   asset_code?: string;
-  context?: string;
-  stellar_transaction_hash?: string;
-  destination_key?: string;
-  created_at: string;
-  updated_at: string;
+  memo?: string;
+  status: 'pending' | 'success' | 'failed';
+  error_message?: string;
+  created_at?: string;
+  submitted_at?: string;
+  ledger?: number;
+  fee_charged?: string;
+  result_xdr?: string;
+}
+
+export interface PaymentRequest {
+  sourceSecret: string;
+  destination: string;
+  amount: string;
+  assetCode?: string;
+  assetIssuer?: string;
+  memo?: string;
+}
+
+export interface CreateAccountRequest {
+  sourceSecret: string;
+  destination: string;
+  startingBalance: string;
 }
