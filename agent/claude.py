@@ -56,7 +56,11 @@ class StellarConverseMultiAgentCrew:
             model="gpt-4o-mini",
             max_tokens=2000
         )
-        
+            CONTACT_MANAGEMENT = "contact_management"
+    TRANSACTION_HISTORY = "transaction_history"
+    ONBOARDING = "onboarding"
+    PIX_DEPOSIT = "pix_deposit"
+
         # Load or initialize conversation session
         try:
             with open('conversation_session.json', 'r') as f:
@@ -96,7 +100,11 @@ class StellarConverseMultiAgentCrew:
         return Agent(
             role="Data Collector",
             goal="Collect all necessary information for the identified action, asking clarifying questions when needed.",
-            backstory=f"""You are responsible for gathering complete information for financial operations.
+            backstory=f"""You a    CONTACT_MANAGEMENT = "contact_management"
+    TRANSACTION_HISTORY = "transaction_history"
+    ONBOARDING = "onboarding"
+    PIX_DEPOSIT = "pix_deposit"
+re responsible for gathering complete information for financial operations.
             
             Current session state: {self.session.state}
             Current action: {self.session.current_action}
@@ -104,7 +112,11 @@ class StellarConverseMultiAgentCrew:
             
             For PAYMENT operations, you need:
             - recipient (contact name or stellar address)
-            - amount (numeric value)
+            - amount (numeric v    CONTACT_MANAGEMENT = "contact_management"
+    TRANSACTION_HISTORY = "transaction_history"
+    ONBOARDING = "onboarding"
+    PIX_DEPOSIT = "pix_deposit"
+alue)
             - asset_code (currency: XLM, USDC, BRLC, etc.)
             - memo (optional)
             
@@ -138,7 +150,11 @@ class StellarConverseMultiAgentCrew:
             proper execution_params for the backend API calls.""",
             tools=[JSONSearchTool(json_path="contacts.json")],
             llm=self.llm,
-            verbose=True,
+            verbose=True,    CONTACT_MANAGEMENT = "contact_management"
+    TRANSACTION_HISTORY = "transaction_history"
+    ONBOARDING = "onboarding"
+    PIX_DEPOSIT = "pix_deposit"
+
             max_iter=3
         )
 

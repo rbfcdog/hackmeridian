@@ -1,1 +1,14 @@
-{"message":"Initiating a payment to Microsoft.","task":"send_payment","params":{"receiver_key":"microsoft_public_key_here","type":"payment","status":"pending","amount":"10","asset_code":"USD","context":{"memo":"Payment for services","receiver_name":"Microsoft Corporation"},"destination_key":"microsoft_public_key_here"}}
+```
+{
+  "message": "Preparando o envio de 10 BRLC para a chave NEAIIPEVBOFEAPFAEIPBAEOPF.",
+  "task": "execute_payment",
+  "params": {
+    "receiver_key": "NEAIIPEVBOFEAPFAEIPBAEOPF",
+    "amount": "10",
+    "asset_code": "BRLC",
+    "receiver_name": "",
+    "type": "payment",
+    "status": "pending"
+  }
+}
+```
