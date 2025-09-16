@@ -1,8 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 
-/// <reference path="../../types/express.d.ts" />
-
 interface AuthenticatedRequest extends Request {
   user?: {
     userId: string;

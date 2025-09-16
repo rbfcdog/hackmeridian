@@ -1,12 +1,8 @@
-// src/api/controllers/actions.controller.ts
 import { Request, Response } from 'express';
 import { StellarService } from '../services/stellar.service';
 import { UserService } from '../services/user.service';
 import { OperationService } from '../services/operation.service';
 import { AuthService } from '../services/auth.service';
-
-// Força o carregamento das declarações de tipo
-/// <reference path="../../types/express.d.ts" />
 
 // Interface local para garantir tipagem
 interface AuthenticatedRequest extends Request {
@@ -38,78 +34,20 @@ export class ActionsController {
     }
   }
   
-  static async createTestAccount(req: Request, res: Response) {
+  static async onboardUser(req: Request, res: Response) {
     try {
-      const result = await StellarService.createTestAccount();
+      const result = await UserService.onboardUser(req.body);
+      
       res.status(201).json({ 
         success: true, 
         ...result,
-        message: "Stellar test account created and funded successfully"
-      });
-    } catch (error: any) {
-      res.status(500).json({ success: false, message: error.message });
-    }
-  }
-
-  static async registerUserWithNewWallet(req: Request, res: Response) {
-    try {
-      const { email, phone_number } = req.body;
-
-      const { user, secret } = await UserService.registerUserWithNewWallet({ email, phone_number });
-      
-      res.status(201).json({ 
-        success: true, 
-        user: user,
-        secret: secret,
-        WARNING: "Esta é a única vez que a chave secreta (secret) será exibida. Guarde-a em um local seguro e não a compartilhe com ninguém."
+        message: "User onboarded successfully"
       });
 
     } catch (error: any) {
       if (error.message.includes('already exists')) {
         return res.status(409).json({ success: false, message: error.message });
       }
-      res.status(500).json({ success: false, message: error.message });
-    }
-  }
-
-  static async registerUserWithExistingWallet(req: Request, res: Response) {
-    try {
-      const { email, phone_number, stellar_public_key } = req.body;
-
-      const { user } = await UserService.registerUserWithExistingWallet({ 
-        email, 
-        phone_number, 
-        stellar_public_key 
-      });
-      
-      res.status(201).json({ 
-        success: true, 
-        user: user,
-        message: "User registered successfully with existing Stellar wallet"
-      });
-
-    } catch (error: any) {
-      if (error.message.includes('already exists')) {
-        return res.status(409).json({ success: false, message: error.message });
-      }
-      res.status(500).json({ success: false, message: error.message });
-    }
-  }
-
-  static async registerUser(req: Request, res: Response) {
-    try {
-      const { email, phone_number } = req.body;
-
-      const { user, secret } = await UserService.registerUser({ email, phone_number });
-      
-      res.status(201).json({ 
-        success: true, 
-        user: user,
-        secret: secret,
-        WARNING: "Esta é a única vez que a chave secreta (secret) será exibida. Guarde-a em um local seguro e não a compartilhe com ninguém."
-      });
-
-    } catch (error: any) {
       res.status(500).json({ success: false, message: error.message });
     }
   }
@@ -117,7 +55,7 @@ export class ActionsController {
   static async addContact(req: AuthenticatedRequest, res: Response) {
     try {
       const { contact_name, public_key } = req.body;
-      const userId = req.user?.userId;
+      const userId = (req as AuthenticatedRequest).user?.userId;
 
       if (!userId) {
         return res.status(401).json({

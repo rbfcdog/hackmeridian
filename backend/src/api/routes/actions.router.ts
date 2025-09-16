@@ -4,16 +4,13 @@ import { authenticateToken } from '../middlewares/auth.middleware';
 import { validate } from '../middlewares/validation.middleware';
 import { 
   loginSchema, 
-  registerUserWithNewWalletSchema,
-  registerUserWithExistingWalletSchema,
-  registerUserSchema,
+  onboardUserSchema,
   addContactSchema,
   lookupContactByNameSchema,
   listContactsSchema,
   buildPaymentXdrSchema,
   executePaymentSchema,
   getOperationHistorySchema,
-  createTestAccountSchema,
   buildPathPaymentXdrSchema,
   executePathPaymentSchema
 } from '../dtos/actions.dto';
@@ -22,11 +19,7 @@ const router = Router();
 
 router.post('/login', validate(loginSchema), ActionsController.login);
 
-router.post('/create-test-account', validate(createTestAccountSchema), ActionsController.createTestAccount);
-
-router.post('/register-user-with-new-wallet', validate(registerUserWithNewWalletSchema), ActionsController.registerUserWithNewWallet);
-router.post('/register-user-with-existing-wallet', validate(registerUserWithExistingWalletSchema), ActionsController.registerUserWithExistingWallet);
-router.post('/register-user', validate(registerUserSchema), ActionsController.registerUser); // Legado - usa new wallet
+router.post('/onboard-user', validate(onboardUserSchema), ActionsController.onboardUser);
 
 router.use(authenticateToken);
 

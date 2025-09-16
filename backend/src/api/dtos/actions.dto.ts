@@ -6,35 +6,15 @@ export const loginSchema = z.object({
   }),
 });
 
-export const registerUserWithNewWalletSchema = z.object({
-  body: z.object({
-    email: z.string().min(1, 'Email is required').email('Not a valid email'),
-    phone_number: z.string().optional(),
-  }),
-});
-
-export const registerUserWithExistingWalletSchema = z.object({
+export const onboardUserSchema = z.object({
   body: z.object({
     email: z.string().email().optional(),
-    phone_number: z.string().optional(),
-    stellar_public_key: z.string().min(1, 'Stellar public key is required').length(56, 'Invalid public key format'),
+    phoneNumber: z.string().optional(),
+    publicKey: z.string().length(56, 'Invalid public key format').optional(),
   }).refine(
-    (data) => data.email || data.phone_number,
+    (data) => data.email || data.phoneNumber,
     {
-      message: 'Either email or phone_number is required',
-      path: ['email'],
-    }
-  ),
-});
-
-export const registerUserSchema = z.object({
-  body: z.object({
-    email: z.string().email(),
-    phone_number: z.string().optional(),
-  }).refine(
-    (data) => data.email,
-    {
-      message: 'Email is required',
+      message: 'Either email or phoneNumber is required',
       path: ['email'],
     }
   ),
@@ -80,10 +60,6 @@ export const listContactsSchema = z.object({
 });
 
 export const getOperationHistorySchema = z.object({
-  body: z.object({}).optional(),
-});
-
-export const createTestAccountSchema = z.object({
   body: z.object({}).optional(),
 });
 

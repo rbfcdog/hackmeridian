@@ -15,4 +15,9 @@ export class AuthService {
 
     return { sessionToken, userId: user.id, publicKey: user.stellar_public_key };
   }
+
+  static generateTokenForUser(userId: string): string {
+    const payload = { userId };
+    return jwt.sign(payload, JWT_SECRET, { expiresIn: '24h' });
+  }
 }
