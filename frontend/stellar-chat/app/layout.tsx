@@ -5,9 +5,12 @@ import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'v0 App',
-  description: 'Created with v0',
+  title: 'Talk To Stellar - AI Agent para Blockchain',
+  description: 'Conectando você à blockchain Stellar através de conversas naturais no WhatsApp.',
   generator: 'v0.app',
+  icons: {
+    icon: '/stellar-logo.png',
+  },
 }
 
 export default function RootLayout({
